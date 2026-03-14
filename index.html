@@ -1,0 +1,194 @@
+<!--
+  靈魂時光表 2.0 — index.html
+  版本：v1.4（路徑改回相對路徑，相容 Live Server 與 GitHub Pages）
+  ───────────────────────────────────────────────────────
+  v1.2 修復：
+    · 統一過渡層 ID 為 loadingOverlay（CSS + JS + HTML 一致）
+    · isInitialized 旗標確保 onAuthStateChanged 邏輯只執行一次
+    · showLoginUI / showAppUI 各自完整控制所有覆蓋層顯隱
+    · loadingOverlay 以 z-index:9999 鎖定，Auth 前絕不可繞過
+  路徑策略：全部使用相對路徑（./filename），
+  相容 VS Code Live Server、GitHub Pages、任何靜態主機。
+    根目錄/
+    ├─ index.html       ← 你在這裡
+    ├─ style.css        ← 所有視覺規範（莫蘭迪色、胖胖正方形…）
+    ├─ firebase.js      ← Firebase 初始化、auth、firestore 實例
+    ├─ grid.js          ← 時間格渲染引擎（renderTimeGrid）
+    ├─ tasks.js         ← 任務 CRUD、localStorage、雲端 sync
+    ├─ ui.js            ← 畫面切換、Event Listener 統一入口
+    └─ manifest.json    ← PWA 設定檔
+
+  載入順序（重要）：
+    Firebase SDK  →  firebase.js（初始化）
+    →  tasks.js（依賴 db/auth 實例）
+    →  grid.js（依賴 tasks.js 的資料）
+    →  ui.js（最後掛事件，依賴前三者所有函式）
+    →  style.css（與 JS 無依賴，放 <head> 提前解析，與 index.html 同層）
+
+  ID 清單（ui.js / grid.js 的 getElementById 全部對應此處）：
+    loginOverlay        — 登入遮罩
+    authStatusText      — 登入狀態文字
+    loginBtn            — Google 登入按鈕
+    modeSelectionScreen — 模式選擇門
+    appUI               — 主應用外殼
+    topScrollContainer  — 電腦版頂部灰色同步滾動條
+    jumpMonth           — 月份下拉
+    jumpDay             — 日期下拉
+    calendarView        — 時間格主體
+    syncStatus          — 雲端同步狀態文字
+    modal               — 通用 Modal 遮罩
+    modalBody           — Modal 內容區
+-->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0,
+        maximum-scale=1.0, user-scalable=no">
+  <title>靈魂時光表 2.0</title>
+
+  <!-- ① 樣式表 -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- ② PWA 必要標籤 -->
+  <!-- manifest：讓瀏覽器識別此為 PWA，提供「加入主畫面」功能 -->
+  <link rel="manifest" href="manifest.json">
+  <!-- iOS Safari 需要額外的 apple-mobile-web-app 標籤（manifest 不夠用）-->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="時間格">
+  <!-- Android Chrome 主題色（影響通知列顏色）-->
+  <meta name="theme-color" content="#849FB5">
+  <!-- 防止 iOS Safari 自動偵測電話號碼 -->
+  <meta name="format-detection" content="telephone=no">
+
+  <!-- ③ Firebase SDK compat（必須在 firebase.js 之前） -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════
+       初始化過渡層 #loadingOverlay  (v1.2)
+       ────────────────────────────────────────
+       這是頁面載入後「唯一」預設可見的元素。
+       在 onAuthStateChanged 取得結果之前，
+       整個 App 鎖定在此畫面，任何其他介面
+       都不允許出現（由 JS 的 isInitialized
+       旗標與 z-index:9999 雙重保障）。
+       ────────────────────────────────────────
+       隱藏時機：onAuthStateChanged 首次觸發
+       並完成 loadData() 後，由 firebase.js 呼叫
+       hideLoadingOverlay() 解鎖，且全生命週期
+       只執行一次（isInitialized 旗標保護）。
+  ════════════════════════════════════════ -->
+  <div id="loadingOverlay">
+    <div class="loading-card">
+      <h1 class="app-title">靈魂時光表</h1>
+      <p class="app-subtitle">2.0</p>
+      <p class="loading-text">正在讀取...</p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       登入覆蓋層 #loginOverlay
+       ────────────────────────────────────────
+       預設 display:none。
+       只有 showLoginUI() 確認「未登入」後才顯示。
+       loginBtn 不需要 JS 二次解鎖，直接可見。
+  ════════════════════════════════════════ -->
+  <div id="loginOverlay" class="screen-overlay" style="display:none">
+    <div class="login-card">
+      <h1 class="app-title">靈魂時光表</h1>
+      <p class="app-subtitle">2.0</p>
+      <p id="authStatusText" class="auth-status">請使用 Google 帳號登入</p>
+      <button id="loginBtn" class="btn btn-primary">
+        <span class="btn-icon">G</span> Google 帳號登入
+      </button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       模式選擇門
+       CSS 初始 display:none → JS 切換為 flex
+  ════════════════════════════════════════ -->
+  <div id="modeSelectionScreen" class="screen-overlay" style="display:none">
+    <h2 class="mode-title">選擇你的模式</h2>
+    <div class="mode-selector">
+      <div class="mode-buttons">
+        <button class="mode-btn" data-mode="time">時間格</button>
+        <button class="mode-btn" data-mode="plan">週計畫</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       主應用外殼
+       CSS 初始 display:none → JS 切換為 flex
+  ════════════════════════════════════════ -->
+  <div id="appUI" style="display:none">
+
+    <!-- ── 頂部導航列 ── -->
+    <header class="top-nav">
+      <button id="backBtn" class="btn-back" aria-label="返回模式選擇">❮ 返回</button>
+
+      <!-- 月日跳轉選單（週計畫模式下由 JS 隱藏 jumpDay） -->
+      <div class="date-picker-group" id="datePicker">
+        <select id="jumpMonth" aria-label="月份"></select>
+        <span class="picker-sep">月</span>
+        <select id="jumpDay" aria-label="日期"></select>
+        <span class="picker-sep">日</span>
+      </div>
+
+      <!-- 手機版：左右日切換箭頭（電腦版 JS 隱藏） -->
+      <div class="mobile-day-nav" id="mobileDayNav" style="display:none">
+        <button id="prevDayBtn" class="day-arrow" aria-label="前一天">❮</button>
+        <span id="mobileDateLabel" class="mobile-date-label"></span>
+        <button id="nextDayBtn" class="day-arrow" aria-label="後一天">❯</button>
+      </div>
+
+      <div class="nav-spacer"></div><!-- 右側平衡佔位 -->
+    </header>
+
+    <!-- 電腦版：頂部灰色同步滾動條（雙向同步 calendarView） -->
+    <div id="topScrollContainer" class="top-scroll-container">
+      <div id="topScrollInner" class="top-scroll-inner"></div>
+    </div>
+
+    <!-- ── 時間格主體 ── -->
+    <!-- grid.js 的 renderTimeGrid() 動態填入 .day-card -->
+    <main class="calendar-view" id="calendarView"></main>
+
+    <!-- ── 底部工具列 ── -->
+    <footer class="bottom-toolbar" id="bottomToolbar">
+      <!-- footer-actions 包裹三個功能按鈕，確保置中 -->
+      <div class="footer-actions">
+        <button id="wastedBtn"  class="btn btn-tool">⚠️ 檢測浪費時間</button>
+        <button id="summaryBtn" class="btn btn-tool">📖 讀書總結回顧</button>
+        <button id="analyticsBtn" class="btn btn-tool">📊 數據分析中心</button>
+      </div>
+      <div id="syncStatus" class="sync-status">☁️ 雲端已同步</div>
+    </footer>
+
+  </div><!-- /#appUI -->
+
+  <!-- ════════════════════════════════════════
+       通用 Modal（編輯 / 詳情 / 待辦 / 總結 共用）
+       CSS 預設 display:none；加 .open class 顯示
+  ════════════════════════════════════════ -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content" id="modalBody">
+      <!-- 由 ui.js 動態注入 HTML -->
+    </div>
+  </div>
+
+  <!-- ④ 業務 JS（嚴格依賴順序） -->
+  <script src="firebase.js"></script>  <!-- 最先：建立 auth / store 實例 -->
+  <script src="tasks.js"></script>     <!-- 次之：依賴 firebase.js 的實例 -->
+  <script src="grid.js"></script>      <!-- 再次：依賴 tasks.js 的資料讀取 -->
+  <script src="ui.js"></script>        <!-- 最後：掛所有事件，依賴前三者 -->
+
+</body>
+</html>
