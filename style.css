@@ -590,18 +590,20 @@ body {
 }
 .slot:hover { background: #d4d4d4; }
 
-/* 手機版格子：拿掉 aspect-ratio，改用固定高度，格子更胖更好點 */
+/* 手機版格子：胖胖正方形（保持 aspect-ratio: 1/1）
+   時間格寬度佔滿格子欄（除去左側 44px 時間標籤），
+   因為 time-row 是 grid 且格子欄佔滿，正方形高度 = 格子欄寬度 */
 @media (max-width: 767px) {
-  .slot {
-    aspect-ratio: unset;
-    height: 48px;              /* 每格 48px，手指點選舒適 */
-    width: 100%;
-  }
-  /* time-row 改用 grid，左邊時間標 44px，右邊格子佔滿 */
+  /* time-row：左側 44px 時間標，右側格子欄佔滿剩餘寬度 */
   .time-row {
     grid-template-columns: 44px 1fr;
   }
-  /* 時間標籤在手機版垂直對齊格子上緣 */
+  .slot {
+    aspect-ratio: 1 / 1;     /* 保持正方形（胖胖格子）*/
+    width: 100%;             /* 佔滿格子欄，讓高度 = 寬度 */
+    min-height: 44px;        /* 確保最小點擊高度，手指友善 */
+  }
+  /* 時間標籤垂直對齊格子上緣 */
   .time-label {
     transform: translateY(0);
     height: auto;
@@ -678,7 +680,37 @@ body {
   align-items: center;
   gap: 20px;
   width: 100%;
-  flex: 1;                  /* 在 bottom-toolbar 內撐滿可用空間 */
+  flex: 1;
+}
+
+/* 手機版：三個按鈕改為垂直排列，確保不被切掉 */
+@media (max-width: 767px) {
+  .footer-actions {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;    /* 按鈕撐滿寬度 */
+    padding: 8px 16px;
+  }
+  .footer-actions .btn-tool {
+    width: 100%;
+    text-align: center;
+    padding: 12px 16px;      /* 加大點擊區域 */
+    font-size: 0.88rem;
+  }
+  /* 底部工具列在手機版改為垂直捲動 */
+  .bottom-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    height: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 16px;
+  }
+  .sync-status {
+    position: static;        /* 手機版回到流內排列 */
+    text-align: center;
+    padding: 4px 0 8px;
+  }
 }
 
 
@@ -1102,4 +1134,25 @@ body {
     padding-bottom: 8px;
     text-align: left;
   }
+}
+
+/* ══════════════════════════════════════════════════════
+   週計畫欄位標題樣式
+   「第 X 週」較深；「(m/dd ~ m/dd)」較淡
+══════════════════════════════════════════════════════ */
+.week-col-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-main);
+  display: block;
+}
+.week-col-range {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);   /* 較淡 */
+}
+.week-col-date {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-dark);
 }

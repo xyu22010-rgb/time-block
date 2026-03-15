@@ -111,11 +111,16 @@ function responsive() {
 }
 
 function _applyPickerForMode(mode) {
-  var jumpDay = document.getElementById('jumpDay');
-  var seps    = document.querySelectorAll('.picker-sep');
-  var isPlan  = (mode === 'plan');
-  if (jumpDay)  jumpDay.style.display       = isPlan ? 'none' : '';
-  if (seps[1])  seps[1].style.display       = isPlan ? 'none' : '';
+  var jumpDay  = document.getElementById('jumpDay');
+  var seps     = document.querySelectorAll('.picker-sep');
+  var isPlan   = (mode === 'plan');
+
+  /* 週計畫模式：只保留月份下拉，隱藏「日」選單與「日」文字 */
+  if (jumpDay)  jumpDay.style.display  = isPlan ? 'none' : '';
+  /* seps[0] = 「月」文字（保留）；seps[1] = 「日」文字（週計畫時隱藏）*/
+  if (seps[1])  seps[1].style.display  = isPlan ? 'none' : '';
+  /* 也隱藏「月」文字後的 jumpDay（已隱藏），確保選單空間整齊 */
+  /* 週計畫模式的月份選單僅用於跳轉到該月第一天所在週 */
 }
 
 /* ══════════════════════════════════════════════════════
@@ -332,9 +337,24 @@ function renderWeekView(refDate) {
 
     /* 日期標題 */
     var header = document.createElement('div');
-    header.className   = 'day-column-header';
-    header.textContent = (day.getMonth()+1) + '/' + day.getDate()
-                       + ' (週' + dayNames[day.getDay()] + ')';
+    header.className = 'day-column-header';
+    /* 標題：「第 X 週 (m/dd ~ m/dd)」只顯示在週日欄（第一欄）*/
+    if (day.getDay() === 0) {
+      /* 計算本週的週次（該年第幾週）*/
+      var weekNum = _getWeekNumber(day);
+      var sunStr  = (days[0].getMonth()+1) + '/' + String(days[0].getDate()).padStart(2,'0');
+      var satStr  = (days[6].getMonth()+1) + '/' + String(days[6].getDate()).padStart(2,'0');
+      header.innerHTML =
+        '<span class="week-col-title">第 ' + weekNum + ' 週</span>' +
+        '<span class="week-col-range"> (' + sunStr + ' ~ ' + satStr + ')</span>';
+    } else {
+      /* 其他欄只顯示日期 */
+      header.innerHTML =
+        '<span class="week-col-date">' +
+          (day.getMonth()+1) + '/' + String(day.getDate()).padStart(2,'0') +
+          ' (週' + dayNames[day.getDay()] + ')' +
+        '</span>';
+    }
     col.appendChild(header);
 
     /* 目標輸入區 */
@@ -370,6 +390,17 @@ function renderWeekView(refDate) {
     var contW   = container.offsetWidth;
     container.scrollLeft = Math.max(0, colLeft + colW / 2 - contW / 2);
   }, 80);
+}
+
+/**
+ * 計算某日期是該年第幾週（週日為週起始）
+ * 回傳 1~53 的整數
+ */
+function _getWeekNumber(date) {
+  var jan1   = new Date(date.getFullYear(), 0, 1);
+  var jan1Day = jan1.getDay();   // 0=週日
+  var dayOfYear = Math.floor((date - jan1) / 86400000) + 1;
+  return Math.ceil((dayOfYear + jan1Day) / 7);
 }
 
 /**

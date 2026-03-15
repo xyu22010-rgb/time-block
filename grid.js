@@ -268,24 +268,26 @@ function _updateMobileDateLabel(date) {
    父容器 .calendar-view 已有 overflow-x:auto，inline:'center' 可正常運作。
 ══════════════════════════════════════════════════════ */
 function initGridScroll(view, targetDate) {
-  /* ── 水平置中今日卡片 ──────────────────────────────────
-   * .calendar-view 現為 overflow:hidden（grid-track 軌道），
-   * scrollIntoView 的 inline:'center' 會對 window 作用而非容器。
-   * 改用 scrollLeft 直接定位：
-   *   置中公式 = 元素左邊緣 + 元素寬度/2 - 視窗寬度/2
+  /* ── 水平置中「今天」的 day-card ──────────────────────
+   *
+   * 需求：使用者進入後，今天的格子要出現在螢幕中央。
+   *
+   * grid-track 是 300% 寬的軌道，中間頁偏移約 33.33%。
+   * todayEl.offsetLeft 相對於 grid-page，不是相對於 view。
+   * 用 getBoundingClientRect() 取螢幕座標，再換算成 scrollLeft 最可靠。
+   *
+   * 公式：new scrollLeft = 現有 scrollLeft + (卡片螢幕中心 - view 螢幕中心)
    * ─────────────────────────────────────────────────── */
   var todayEl = view.querySelector('.day-card.today');
   if (todayEl) {
     setTimeout(function() {
-      /* 相對於 calendarView 的左偏移 */
-      var cardLeft  = todayEl.offsetLeft;
-      var cardW     = todayEl.offsetWidth;
-      var viewW     = view.offsetWidth;
-      /* 計算讓卡片水平置中所需的 scrollLeft */
-      var targetLeft = cardLeft + cardW / 2 - viewW / 2;
-      /* 找到 .grid-track，對它的父容器（view）設 scrollLeft */
-      view.scrollLeft = Math.max(0, targetLeft);
-    }, 80);  /* 等 DOM layout 穩定後再計算 */
+      var viewRect   = view.getBoundingClientRect();
+      var cardRect   = todayEl.getBoundingClientRect();
+      var cardCenter = cardRect.left + cardRect.width  / 2;  // 卡片中心的螢幕 X
+      var viewCenter = viewRect.left + viewRect.width  / 2;  // view 中心的螢幕 X
+      var delta      = cardCenter - viewCenter;              // 需要再捲多少
+      view.scrollLeft = Math.max(0, view.scrollLeft + delta);
+    }, 120);
   }
 
   /* ── 垂直：捲至當前時間（只動 scrollTop，不碰水平）── */
