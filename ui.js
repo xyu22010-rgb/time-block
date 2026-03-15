@@ -298,14 +298,16 @@ function renderWeekView(year, month) {
   if (year  === undefined) year  = new Date().getFullYear();
   if (month === undefined) month = new Date().getMonth();
 
-  /* 週計畫模式：垂直捲動列表 */
+  /* 週計畫模式：電腦版橫向排列，手機版垂直堆疊 */
+  var _isMobileView = window.innerWidth <= 430;
+  view.style.display       = 'flex';
   view.style.overflow      = '';
-  view.style.overflowX     = 'hidden';
-  view.style.overflowY     = 'auto';
-  view.style.flexDirection = 'column';
-  view.style.alignItems    = 'stretch';
-  view.style.padding       = '12px 14px 24px';
-  view.style.gap           = '14px';
+  view.style.overflowX     = _isMobileView ? 'hidden' : 'auto';
+  view.style.overflowY     = _isMobileView ? 'auto'   : 'hidden';
+  view.style.flexDirection = _isMobileView ? 'column' : 'row';
+  view.style.alignItems    = _isMobileView ? 'stretch' : 'flex-start';
+  view.style.padding       = _isMobileView ? '12px 14px 24px' : '16px 14px';
+  view.style.gap           = '16px';
   view.dataset.mode        = 'plan';
   view.innerHTML           = '';
 
@@ -338,6 +340,11 @@ function renderWeekView(year, month) {
     var goalList = document.createElement('div');
     goalList.id        = 'goals-' + weekKey;
     goalList.className = 'week-goals-list';
+    /* 電腦版強制橫排（inline style 優先級高於 CSS class，確保不被覆蓋） */
+    var isMobile = window.innerWidth < 768;
+    goalList.style.cssText = isMobile
+      ? 'display:flex;flex-direction:column;gap:6px;margin-bottom:4px'
+      : 'display:flex;flex-direction:row;flex-wrap:wrap;gap:8px 14px;align-items:flex-start;margin-bottom:4px';
     goalList.innerHTML = _buildWeekGoalRows(goals);
     card.appendChild(goalList);
 
@@ -389,8 +396,12 @@ function _isoWeekNumber(date) {
 }
 
 function _buildWeekGoalRows(goals) {
+  var isMobile = window.innerWidth < 768;
+  var rowStyle = isMobile
+    ? 'display:flex;flex-direction:row;align-items:center;gap:7px;width:100%;min-width:0;max-width:none'
+    : 'display:flex;flex-direction:row;align-items:center;gap:7px;flex:0 0 auto;min-width:160px;max-width:240px';
   return goals.map(function(g) {
-    return '<div class="week-goal-row" data-id="' + g.id + '">' +
+    return '<div class="week-goal-row" data-id="' + g.id + '" style="' + rowStyle + '">' +
       '<input type="checkbox" class="week-goal-checkbox"' + (g.checked ? ' checked' : '') + '>' +
       '<input type="text" class="week-goal-input" placeholder="目標…" value="' + _esc(g.text) + '">' +
     '</div>';
@@ -403,6 +414,11 @@ function _addWeekGoal(dayKey) {
   var row = document.createElement('div');
   row.className  = 'week-goal-row';
   row.dataset.id = generateId();
+  /* 和 list 方向一致：電腦版橫排 row（checkbox 左＋input 右） */
+  row.style.cssText = 'display:flex;flex-direction:row;align-items:center;gap:7px;flex:0 0 auto;min-width:160px;max-width:240px';
+  if (window.innerWidth < 768) {
+    row.style.cssText = 'display:flex;flex-direction:row;align-items:center;gap:7px;width:100%;min-width:0;max-width:none';
+  }
   row.innerHTML  =
     '<input type="checkbox" class="week-goal-checkbox">' +
     '<input type="text" class="week-goal-input" placeholder="目標…">';
@@ -795,7 +811,7 @@ function _buildMinSelect(id) {
 function _fmtTime(mins) { return Math.floor(mins/60)+' 小時 '+(mins%60)+' 分鐘'; }
 
 function _saveScroll() { var v=document.getElementById('calendarView'); if(!v)return; _savedScrollLeft=v.scrollLeft; _savedScrollTop=v.scrollTop; }
-function _restoreScroll() { requestAnimationFrame(function(){ var v=document.getElementById('calendarView'); if(!v)return; v.scrollLeft=_savedScrollLeft; v.scrollTop=_savedScrollTop; }); }
+function _restoreScroll() { requestAnimationFrame(function(){ var v=document.getElementById('calendarView'); if(!v)return; /* 電腦版時間格：絕不動 scrollLeft，translateX 控制水平位置 */ if(v.dataset.mode!=='desktop') v.scrollLeft=_savedScrollLeft; v.scrollTop=_savedScrollTop; }); }
 
 function _esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function _el(id)  { return document.getElementById(id); }

@@ -58,7 +58,7 @@ function renderTimeGrid(targetDate, direction) {
   var view = document.getElementById('calendarView');
   if (!view) return;
 
-  var isMobile = window.innerWidth < 768;
+  var isMobile = window.innerWidth < 431;
 
   if (isMobile) {
     /* ── 手機版：單日滑動 ── */
@@ -87,10 +87,14 @@ function _renderDesktopSlide(view, targetDate, direction) {
     _currentPageIndex = 1;
     _syncTopScrollWidth();
 
-    /* 需求 2：首次載入置中今日 + 垂直捲至當前時間 */
-    setTimeout(function() {
-      initGridScroll(view, targetDate);
-    }, 50);
+    /* 需求 2：首次載入置中今日 + 垂直捲至當前時間
+       使用 double-rAF 確保 _applyDesktopTrackWidths 的 rAF 先執行 */
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        initGridScroll(view, targetDate);
+        _syncTopScrollWidth();
+      });
+    });
     return;
   }
 
@@ -100,29 +104,27 @@ function _renderDesktopSlide(view, targetDate, direction) {
     _buildDesktopTrack(view, sun);
     _currentWeekSun   = sun;
     _currentPageIndex = 1;
-    _syncTopScrollWidth();
-    setTimeout(function() { initGridScroll(view, targetDate); }, 50);
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        initGridScroll(view, targetDate);
+        _syncTopScrollWidth();
+      });
+    });
     return;
   }
 
   track = view.querySelector('.grid-track');
   var slideDir = direction === 'left' ? 1 : -1; // left=往未來=往左滑
-  var viewW = view.clientWidth || window.innerWidth;
+  var viewW = view.clientWidth || document.documentElement.clientWidth || window.innerWidth;
 
-  /* 在軌道邊緣預建新一週 */
+  /* 在軌道邊緣預建新一週，append 前先鎖好寬度 */
   var newSun  = new Date(sun);
   var newPage = _buildWeekPage(newSun);
-  /* 設定新頁的精確寬度 */
-  newPage.style.width    = viewW + 'px';
-  newPage.style.flexBasis = viewW + 'px';
-  newPage.style.minWidth  = viewW + 'px';
-  newPage.style.maxWidth  = viewW + 'px';
+  _lockPageWidth(newPage, viewW);
 
   if (slideDir === 1) {
-    /* 往未來：新頁加在右側 */
     track.appendChild(newPage);
   } else {
-    /* 往過去：新頁加在左側 */
     track.insertBefore(newPage, track.firstChild);
   }
 
@@ -159,35 +161,96 @@ function _renderDesktopSlide(view, targetDate, direction) {
   _currentWeekSun = sun;
 }
 
-/** 建立初始三頁軌道（上週、本週、下週）*/
+/**
+ * 建立初始三頁軌道（上週、本週、下週）
+ *
+ * 關鍵策略：grid-page 必須在 appendChild 之前就有明確的 px 寬度，
+ * 否則 day-card（290px × 7 = 2030px）會把 grid-page 撐開，
+ * 導致 translateX 計算錯誤而顯示錯誤的日期。
+ *
+ * 流程：
+ *   1. 用 window.innerWidth 設好「預設寬度」（渲染前的安全值）
+ *   2. append 進 DOM
+ *   3. rAF 後用 view.clientWidth 精確修正（消除捲軸等誤差）
+ */
 function _buildDesktopTrack(view, sun) {
-  view.innerHTML = '';
+  /* 清除週計畫模式留下的 inline style，恢復 CSS 控制 */
+  view.style.display       = '';
+  view.style.flexDirection = '';
+  view.style.alignItems    = '';
+  view.style.padding       = '';
+  view.style.gap           = '';
+  view.style.overflowY     = '';
+  view.style.overflow      = '';
+  view.scrollLeft = 0;   /* 防止殘留的 scrollLeft 偏移 */
+  view.innerHTML  = '';
+
+  /* 預先讀取寬度——此時 view 已在 DOM 中，clientWidth 可靠 */
+  var viewW = view.clientWidth || document.documentElement.clientWidth || window.innerWidth;
 
   var track = document.createElement('div');
-  track.className = 'grid-track';
+  track.className        = 'grid-track';
+  track.style.transition = 'none';
+  track.style.width      = (viewW * 3) + 'px';
 
   /* 三頁：上週（-7天）、本週、下週（+7天） */
   [-7, 0, 7].forEach(function(offset) {
     var pageSun = new Date(sun);
     pageSun.setDate(sun.getDate() + offset);
-    track.appendChild(_buildWeekPage(pageSun));
+    var page = _buildWeekPage(pageSun);
+    /* 在 append 前就鎖好寬度，阻止 day-card 撐開 grid-page */
+    _lockPageWidth(page, viewW);
+    track.appendChild(page);
   });
 
-  /* 使用 px 精確寬度，避免 % 計算在不同瀏覽器的誤差 */
-  var viewW = view.clientWidth || window.innerWidth;
-  track.style.width     = (viewW * 3) + 'px';
-  track.style.transform = 'translateX(-' + viewW + 'px)';   /* 顯示中間頁 */
-  track.style.transition = 'none';
+  /* 為每個 grid-page 綁定 scroll → 頂部滾動條同步 */
+  track.querySelectorAll('.grid-page').forEach(function(pg) {
+    pg.addEventListener('scroll', function() {
+      var top = document.getElementById('topScrollContainer');
+      if (top) top.scrollLeft = pg.scrollLeft;
+    });
+  });
+
+  /* translateX 到中間頁（index 1） */
+  track.style.transform = 'translateX(-' + viewW + 'px)';
   view.appendChild(track);
+  view.scrollLeft = 0;
   _currentPageIndex = 1;
 
-  /* 為每個 grid-page 設定精確 px 寬度 */
-  track.querySelectorAll('.grid-page').forEach(function(p) {
-    p.style.width    = viewW + 'px';
-    p.style.flexBasis = viewW + 'px';
-    p.style.minWidth  = viewW + 'px';
-    p.style.maxWidth  = viewW + 'px';
+  /* rAF 後用 clientWidth 精確修正（處理捲軸、縮放等微差） */
+  requestAnimationFrame(function() {
+    var exactW = view.clientWidth || viewW;
+    if (Math.abs(exactW - viewW) > 1) {
+      /* 寬度有差異才重新套用，避免不必要的 reflow */
+      _applyDesktopTrackWidths(view, track, 1);
+    }
   });
+}
+
+/**
+ * 鎖定單一 grid-page 的寬度與高度（在 appendChild 前呼叫）。
+ * overflow-y:auto 需要 grid-page 有明確高度才能正確捲動。
+ */
+function _lockPageWidth(page, viewW) {
+  /* grid-page 寬度固定為 calendarView 寬（用於 translateX 計算），
+     但內部允許橫向捲動（overflow-x:auto），所以卡片可以超出並捲動 */
+  page.style.width     = viewW + 'px';
+  page.style.flexBasis = viewW + 'px';
+  page.style.minWidth  = viewW + 'px';
+  page.style.maxWidth  = viewW + 'px';
+  page.style.overflowX = 'auto';
+  page.style.overflowY = 'auto';
+}
+
+/**
+ * 用 view.clientWidth 重新套用所有 px 寬度與高度（視窗 resize 或修正用）。
+ */
+function _applyDesktopTrackWidths(view, track, centerIdx) {
+  var viewW = view.clientWidth || document.documentElement.clientWidth || window.innerWidth;
+  var pages = track.querySelectorAll('.grid-page');
+  pages.forEach(function(p) { _lockPageWidth(p, viewW); });
+  track.style.width     = (pages.length * viewW) + 'px';
+  track.style.transform = 'translateX(-' + (centerIdx * viewW) + 'px)';
 }
 
 /** 建立一週的 grid-page（包含 7 個 day-card） */
@@ -209,8 +272,6 @@ function _trimTrackToThree(track, view, targetDate) {
   var pages = track.querySelectorAll('.grid-page');
   if (pages.length <= 3) return;
 
-  var viewW = view.clientWidth || window.innerWidth;
-
   /* 找到當前顯示的頁（最近 _currentWeekSun 匹配的） */
   var currentSunStr = _currentWeekSun ? _currentWeekSun.toDateString() : '';
   var centerIdx = 1;
@@ -227,10 +288,11 @@ function _trimTrackToThree(track, view, targetDate) {
 
   track.innerHTML = '';
   keep.forEach(function(p) { track.appendChild(p); });
-  track.style.width      = (viewW * 3) + 'px';
   track.style.transition = 'none';
-  track.style.transform  = 'translateX(-' + viewW + 'px)';   /* 中間頁 */
   _currentPageIndex = 1;
+
+  /* 重新套用精確 px 寬度 */
+  _applyDesktopTrackWidths(view, track, 1);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -279,37 +341,42 @@ function _updateMobileDateLabel(date) {
 }
 
 /* ══════════════════════════════════════════════════════
-   需求 2：今日置中 initGridScroll
+   initGridScroll：垂直捲至當前時間
    ──────────────────────────────────────────────────────
-   依照需求指定的語法，使用 .day-card.today 搭配
-   scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' })
-   父容器 .calendar-view 已有 overflow-x:auto，inline:'center' 可正常運作。
+   電腦版：只做垂直捲動，絕不碰水平方向。
+     translateX 已由 _buildDesktopTrack / _applyDesktopTrackWidths
+     正確設定為顯示中間頁（本週），水平位置固定不動。
+     view.scrollLeft 必須永遠保持 0——overflow-x:hidden 不阻止
+     JS 設定 scrollLeft，任何對 scrollLeft 的寫入都會
+     疊加在 translateX 上造成顯示錯誤。
+
+   手機版：只做垂直捲動（同電腦版，無水平需求）。
 ══════════════════════════════════════════════════════ */
 function initGridScroll(view, targetDate) {
-  /* ── 水平置中「今天」的 day-card ──────────────────────
-   *
-   * 需求：使用者進入後，今天的格子要出現在螢幕中央。
-   *
-   * grid-track 是 300% 寬的軌道，中間頁偏移約 33.33%。
-   * todayEl.offsetLeft 相對於 grid-page，不是相對於 view。
-   * 用 getBoundingClientRect() 取螢幕座標，再換算成 scrollLeft 最可靠。
-   *
-   * 公式：new scrollLeft = 現有 scrollLeft + (卡片螢幕中心 - view 螢幕中心)
-   * ─────────────────────────────────────────────────── */
-  var todayEl = view.querySelector('.day-card.today');
-  if (todayEl) {
-    setTimeout(function() {
-      var viewRect   = view.getBoundingClientRect();
-      var cardRect   = todayEl.getBoundingClientRect();
-      var cardCenter = cardRect.left + cardRect.width  / 2;  // 卡片中心的螢幕 X
-      var viewCenter = viewRect.left + viewRect.width  / 2;  // view 中心的螢幕 X
-      var delta      = cardCenter - viewCenter;              // 需要再捲多少
-      view.scrollLeft = Math.max(0, view.scrollLeft + delta);
-    }, 120);
+  if (window.innerWidth < 431) {
+    _scrollToCurrentTime(view);
+    return;
   }
 
-  /* ── 垂直：捲至當前時間（只動 scrollTop，不碰水平）── */
-  _scrollToCurrentTime(view);
+  /* 電腦版：今日卡片水平置中 */
+  var pages = view.querySelectorAll('.grid-page');
+  var page  = pages[_currentPageIndex] || pages[0];
+  if (!page) return;
+
+  var todayCard = page.querySelector('.day-card.today');
+  if (!todayCard) return;
+
+  setTimeout(function() {
+    var pageW    = page.clientWidth;
+    var cardLeft = todayCard.offsetLeft;
+    var cardW    = todayCard.offsetWidth;
+    var target   = cardLeft - (pageW / 2) + (cardW / 2);
+    page.scrollLeft = Math.max(0, target);
+
+    /* 同步頂部滾動條 */
+    var topContainer = document.getElementById('topScrollContainer');
+    if (topContainer) topContainer.scrollLeft = page.scrollLeft;
+  }, 150);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -416,9 +483,12 @@ function _paintTaskBlock(gridWrap, task, slotH) {
 }
 
 /* ══════════════════════════════════════════════════════
-   垂直捲至當前時間（只動 scrollTop，不碰水平）
+   垂直捲至當前時間（手機版用，電腦版由使用者自己捲）
 ══════════════════════════════════════════════════════ */
 function _scrollToCurrentTime(view) {
+  /* 手機版：calendarView overflow-y:auto，用 calendarView.scrollTo */
+  if (window.innerWidth >= 431) return;   /* 電腦版不自動捲動 */
+
   var now      = new Date();
   var totalMin = now.getHours() * 60 + now.getMinutes();
   var slotIdx  = Math.floor(totalMin / SLOT_MINUTES);
@@ -435,13 +505,10 @@ function _scrollToCurrentTime(view) {
     var targetSlot = slots[slotIdx];
     if (!targetSlot) return;
 
-    /* offsetTop 相對於 gridWrap，再加上 card 的 offsetTop */
     var cardTop  = todayCard.offsetTop;
     var slotTop  = targetSlot.offsetTop;
     var viewH    = view.clientHeight || window.innerHeight * 0.7;
-    var scrollTo = cardTop + slotTop - viewH * 0.30;
-
-    view.scrollTo({ top: Math.max(0, scrollTo), behavior: 'smooth' });
+    view.scrollTo({ top: Math.max(0, cardTop + slotTop - viewH * 0.3), behavior: 'smooth' });
   }, 300);
 }
 
@@ -457,50 +524,49 @@ function _getWeekSunday(date) {
   return sun;
 }
 
-/** 頂部滾動條同步（電腦版，防重複綁定） */
+/** 頂部滾動條：電腦版時間格模式下隱藏（translateX 控制頁面，不需要捲軸）*/
 function _syncTopScrollWidth() {
   var topContainer = document.getElementById('topScrollContainer');
   var topInner     = document.getElementById('topScrollInner');
   var calView      = document.getElementById('calendarView');
   if (!topContainer || !topInner || !calView) return;
 
-  setTimeout(function() {
-    /* scrollWidth 需要抓 .grid-track 的真實寬度 */
-    var track = calView.querySelector('.grid-track');
-    topInner.style.width = (track ? track.scrollWidth : calView.scrollWidth) + 'px';
-  }, 50);
+  /* 電腦版時間格：顯示頂部滾動條，寬度設為 grid-page 的內容寬 */
+  if (calView.dataset.mode === 'desktop') {
+    topContainer.style.display = '';
+    setTimeout(function() {
+      var page = calView.querySelector('.grid-page');
+      if (page) topInner.style.width = page.scrollWidth + 'px';
+    }, 80);
+  } else {
+    topContainer.style.display = 'none';
+  }
 
+  /* 雙向同步：只在 desktop 模式下同步 scrollLeft */
   if (!topContainer._syncBound) {
     topContainer._syncBound = true;
     topContainer.addEventListener('scroll', function() {
-      calView.scrollLeft = topContainer.scrollLeft;
-    });
-    calView.addEventListener('scroll', function() {
-      topContainer.scrollLeft = calView.scrollLeft;
+      if (calView.dataset.mode === 'desktop') {
+        /* 同步到目前顯示的 grid-page */
+        var page = calView.querySelector('.grid-page:nth-child(' + (_currentPageIndex + 1) + ')');
+        if (!page) page = calView.querySelector('.grid-page');
+        /* topContainer 捲動 → 讓 calendarView 的 scrollLeft 跟著動
+           但 calendarView 的 scrollLeft 會破壞 translateX，
+           所以改為調整 grid-page 自身的 scrollLeft */
+        if (page) page.scrollLeft = topContainer.scrollLeft;
+      }
     });
   }
 }
 
 /**
  * 視窗大小改變時，重新套用 px 寬度（由 ui.js resize handler 呼叫）
- * 每次 renderTimeGrid 重建 track 時已會重算，
- * 此函式供需要就地更新（不重建）的場合使用。
  */
 function _refreshDesktopTrackWidths() {
   var calView = document.getElementById('calendarView');
   if (!calView || calView.dataset.mode !== 'desktop') return;
   var track = calView.querySelector('.grid-track');
   if (!track) return;
-  var pages = track.querySelectorAll('.grid-page');
-  var viewW = calView.clientWidth || window.innerWidth;
-  track.style.width = (pages.length * viewW) + 'px';
-  pages.forEach(function(p) {
-    p.style.width     = viewW + 'px';
-    p.style.flexBasis = viewW + 'px';
-    p.style.minWidth  = viewW + 'px';
-    p.style.maxWidth  = viewW + 'px';
-  });
-  /* 重新置中到當前頁 */
   track.style.transition = 'none';
-  track.style.transform  = 'translateX(-' + (_currentPageIndex * viewW) + 'px)';
+  _applyDesktopTrackWidths(calView, track, _currentPageIndex);
 }

@@ -440,7 +440,7 @@ body {
 .top-scroll-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
 .top-scroll-inner { height: 1px; } /* 僅撐開寬度 */
 
-@media (max-width: 767px) {
+@media (max-width: 430px) {
   .top-scroll-container { display: none; }
 }
 
@@ -448,20 +448,21 @@ body {
    6. 時間格主體 — calendarView
 ══════════════════════════════════════════════════════ */
 .calendar-view {
-  /* 橫向隱藏讓 grid-track translateX 滑動；垂直由媒體查詢控制 */
+  /* overflow-x:hidden 裁切左右兩頁，overflow-y:auto 允許垂直捲動。
+     注意：overflow-x:hidden 不阻止 JS 設定 scrollLeft，
+     因此 _buildDesktopTrack 裡必須強制 view.scrollLeft=0。 */
   overflow-x: hidden;
   overflow-y: auto;
   padding: 0;
   flex: 1;
   position: relative;
-  /* 確保裁切上下文正確建立，防止 grid-page 溢出 */
   isolation: isolate;
 }
 .calendar-view::-webkit-scrollbar       { width: 4px; }
 .calendar-view::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
 
 /* 手機版：calendar-view 本身必須可垂直捲動 */
-@media (max-width: 767px) {
+@media (max-width: 430px) {
   .calendar-view {
     overflow-x: hidden;
     overflow-y: auto;          /* 手機版垂直捲動看完整時間軸 */
@@ -475,40 +476,41 @@ body {
 .grid-track {
   display: flex;
   flex-direction: row;
-  height: 100%;
+  height: 100%;        /* 讓 grid-page 可用 height:100% 繼承 */
   will-change: transform;
-  /* 防止軌道本身產生捲軸或溢出 */
-  overflow: visible;
+  overflow: visible;   /* 軌道本身不裁切，由 calendar-view 的 overflow:hidden 裁切 */
 }
 
 /* ══ 電腦版單頁（一整週）══
    架構：
-   - .calendar-view 是視窗（overflow-x: hidden，寬 = 螢幕可視寬）
-   - .grid-track 寬 = calendarView × 3（三頁軌道）
-   - .grid-page 寬 = grid-track / 3 = calendarView 可視寬
-   - .day-card 固定 290px，7 張超出 grid-page 寬度
-   - grid-page 設 overflow-x: hidden，每次只顯示 calendarView 可見部分的 7 張
-
-   「只顯示 7 天」的保證：
-     calendarView overflow-x:hidden + translateX 只讓中間那頁可見
-     grid-page 本身也 overflow-x:hidden，左右兩頁完全不可見
+   - .calendar-view 是視窗（overflow: hidden，不可捲動）
+   - .grid-track 寬 = calendarView × 3（三頁軌道），translateX 切換週
+   - .grid-page 寬 = calendarView，高 = calendarView，overflow-y:auto
+     → 垂直捲動在 grid-page 內部發生，與水平 translateX 完全隔離
+   - .day-card 固定 290px
 */
 .grid-page {
-  /* 精確等於 calendar-view 的可視寬（= 1/3 of 300%-wide track）*/
-  flex: 0 0 calc(100% / 3);
-  width: calc(100% / 3);       /* 明確指定 width，防止 flex 計算偏差 */
-  min-width: 0;                /* 防止 flex 子元素撐破父容器 */
+  /* 寬度由 JS _lockPageWidth 控制（固定為 calendarView 寬）。
+     overflow-x:auto：7 張卡片超出時橫向捲動（搭配頂部滾動條）。
+     overflow-y:auto：48 格時間軸超出時垂直捲動。
+     JS 的 _lockPageWidth 也會用 inline style 設定 overflow，優先級更高。 */
+  flex-shrink: 0;
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  overflow: hidden;            /* 嚴格裁切：只顯示可見範圍內的卡片 */
+  overflow-x: auto;
+  overflow-y: auto;
   gap: 10px;
   padding: 12px 10px 16px;
   box-sizing: border-box;
+  scrollbar-width: thin;
 }
+.grid-page::-webkit-scrollbar { height: 4px; width: 4px; }
+.grid-page::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+
 
 /* ── 電腦版 day-card：固定 290px（恢復原始大小）── */
-@media (min-width: 768px) {
+@media (min-width: 431px) {
   .day-card {
     flex: 0 0 290px;
     flex-shrink: 0;           /* 嚴禁壓縮，保持 290px */
@@ -526,7 +528,7 @@ body {
 }
 
 /* 手機版：day-card 佔全寬 */
-@media (max-width: 767px) {
+@media (max-width: 430px) {
   .day-card {
     flex: 0 0 100%;
     width: 100%;
@@ -608,7 +610,7 @@ body {
 /* 手機版格子：胖胖正方形（保持 aspect-ratio: 1/1）
    時間格寬度佔滿格子欄（除去左側 44px 時間標籤），
    因為 time-row 是 grid 且格子欄佔滿，正方形高度 = 格子欄寬度 */
-@media (max-width: 767px) {
+@media (max-width: 430px) {
   /* time-row：左側 44px 時間標，右側格子欄佔滿剩餘寬度 */
   .time-row {
     grid-template-columns: 44px 1fr;
@@ -699,7 +701,7 @@ body {
 }
 
 /* 手機版：三個按鈕改為垂直排列，確保不被切掉 */
-@media (max-width: 767px) {
+@media (max-width: 430px) {
   .footer-actions {
     flex-direction: column;
     gap: 8px;
@@ -764,7 +766,7 @@ body {
 }
 
 /* 手機版 Modal：佔滿螢幕寬度 */
-@media (max-width: 767px) {
+@media (max-width: 430px) {
   .modal-content {
     width: 92vw;             /* 手機版加寬至 92% 視窗寬 */
     max-width: none;         /* 移除最大寬度限制 */
@@ -1132,7 +1134,7 @@ body {
 /* ══════════════════════════════════════════════════════
    手機版週計畫：垂直堆疊（每日一行，上下捲動）
 ══════════════════════════════════════════════════════ */
-@media (max-width: 767px) {
+@media (max-width: 430px) {
   .week-container {
     flex-direction: column !important;   /* 垂直堆疊 */
     overflow-x: visible !important;
@@ -1187,10 +1189,22 @@ body {
   border-radius: var(--radius-card);
   padding: 16px 14px 14px;
   box-shadow: var(--shadow-card);
-  flex-shrink: 0;
+  flex: 0 0 320px;      /* 每張週卡固定 320px 寬，橫向排列 */
+  min-width: 280px;
+  max-width: 400px;
 }
 .week-card-block.current-week {
   box-shadow: var(--shadow-card), 0 0 0 1.5px var(--color-main-light);
+}
+
+/* 手機版：週卡改為垂直堆疊，佔全寬 */
+@media (max-width: 430px) {
+  .week-card-block {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
 }
 
 /* 卡片標題 */
@@ -1213,33 +1227,34 @@ body {
   color: var(--text-muted);
 }
 
-/* ── 電腦版：目標橫向排列（每個目標一欄）── */
+/* ── 電腦版：目標橫向排列（每個目標是一個欄位，左→右並排）── */
 .week-goals-list {
   display: flex;
-  flex-direction: row;      /* 電腦版：左→右橫排 */
+  flex-direction: row;      /* 電腦版：多個目標由左到右 */
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px 14px;
   align-items: flex-start;
+  margin-bottom: 4px;
 }
 
+/* 每個目標欄位：checkbox 左、input 右，橫向排列 */
 .week-goal-row {
   display: flex;
-  flex-direction: column;   /* 電腦版：checkbox 在上，input 在下 */
-  align-items: flex-start;
-  gap: 5px;
+  flex-direction: row;      /* 電腦版：checkbox 在左，input 在右 */
+  align-items: center;
+  gap: 7px;
   flex: 0 0 auto;
-  min-width: 130px;
-  max-width: 200px;
+  min-width: 160px;
+  max-width: 240px;
 }
 
-/* 手機版：目標垂直堆疊 */
-@media (max-width: 767px) {
+/* 手機版：目標清單垂直堆疊，每個 row 佔全寬 */
+@media (max-width: 430px) {
   .week-goals-list {
     flex-direction: column;
+    gap: 6px;
   }
   .week-goal-row {
-    flex-direction: row;    /* 手機版：checkbox 左側，input 右側 */
-    align-items: center;
     min-width: 0;
     max-width: none;
     width: 100%;
@@ -1250,15 +1265,38 @@ body {
 .week-card-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 10px;
+  justify-content: flex-start; /* 新增目標在最左，儲存在右側 */
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
 }
 
-@media (max-width: 767px) {
+/* 電腦版：儲存按鈕放右側，用 margin-left: auto 把它推到最右 */
+@media (min-width: 431px) {
+  .week-card-footer .week-save-btn {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 430px) {
   .week-card-footer {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
+  }
+}
+
+/* 週計畫儲存按鈕：電腦版長方形，不佔全寬 */
+.week-save-btn {
+  padding: 9px 24px;
+  font-size: 0.88rem;
+  width: auto;       /* 電腦版不撐滿，保持長方形 */
+}
+
+@media (max-width: 430px) {
+  .week-save-btn {
+    width: 100%;     /* 手機版撐滿 */
+    padding: 11px 0;
   }
 }
 
@@ -1300,16 +1338,8 @@ body {
 }
 .week-day-col.today .week-day-hdr { color: var(--color-main); }
 
-/* 週計畫儲存按鈕縮小版 */
-.week-save-btn {
-  padding: 5px 0;
-  font-size: 0.72rem;
-  margin-top: 4px;
-  width: 100%;
-}
-
 /* 手機版週計畫：欄位垂直堆疊 */
-@media (max-width: 767px) {
+@media (max-width: 430px) {
   .week-days-row {
     flex-direction: column;
     overflow-x: visible;

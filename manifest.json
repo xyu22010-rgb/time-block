@@ -1,7 +1,7 @@
 {
   "name": "時間格",
   "short_name": "時間格",
-  "description": "靈魂時光表 2.0 — 每日 48 格 30 分鐘制時間管理工具",
+  "description": "時間格 2.0 — 每日 48 格 30 分鐘制時間管理工具",
   "start_url": "/time-block/index.html",
   "scope": "/time-block/",
   "display": "standalone",
