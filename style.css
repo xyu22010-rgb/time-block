@@ -1,0 +1,1007 @@
+/*
+  靈魂時光表 2.0 — css/style.css  v1.2
+  ═══════════════════════════════════════════════════════
+  v1.2 更新：
+    · 全面套用使用者指定的莫蘭迪色板（精確 hex）
+    · 陰影改為 Soft Shadow 風格
+    · 圓角提升為圓滑感
+    · 新增 .visible 安全開關（display:flex !important）
+    · loginOverlay / modeSelectionScreen 確保預設隱藏
+    · #loadingOverlay z-index:9999 鎖定（最高層）
+  ═══════════════════════════════════════════════════════
+*/
+
+/* ══════════════════════════════════════════════════════
+   0. CSS 變數 — 莫蘭迪色板（v1.2 完整規範）
+══════════════════════════════════════════════════════ */
+:root {
+
+  /* ── 莫蘭迪七色（任務顏色選擇器 / 語義用途）── */
+  --morandi-red:    #D6ADAD;   /* 莫蘭迪紅 */
+  --morandi-orange: #D9C5B2;   /* 莫蘭迪橘 */
+  --morandi-yellow: #E3D5B8;   /* 莫蘭迪黃 */
+  --morandi-green:  #A3B18A;   /* 莫蘭迪綠 → 標記已讀完 */
+  --morandi-blue:   #849FB5;   /* 莫蘭迪藍 → UI 主色 / 計時器 */
+  --morandi-indigo: #97A7B3;   /* 莫蘭迪靛 */
+  --morandi-purple: #B8B5C3;   /* 莫蘭迪紫 → 警示色 */
+
+  /* ── 主色體系（衍生自莫蘭迪藍）── */
+  --color-main:       #849FB5;
+  --color-main-deep:  #607D96;   /* hover / active 深化 */
+  --color-main-light: #C4D4DF;   /* 淡化背景 / 選取狀態 */
+
+  /* ── 語義色 ── */
+  --color-done:   var(--morandi-green);   /* 標記完成 */
+  --color-wasted: var(--morandi-purple);  /* 浪費時間警示（灰紫） */
+
+  /* ── 中性色 ── */
+  --bg:           #fdfdfd;   /* 頁面背景 */
+  --surface:      #ffffff;   /* 卡片 / Modal 背景 */
+  --slot-empty:   #e0e0e0;   /* 未填色格子 */
+  --slot-divider: rgba(255,255,255,0.65); /* 格子間淡分隔線 */
+  --border-light: #EBEBEB;
+  --text-dark:    #5B5B5B;   /* 主要文字 */
+  --text-muted:   #B2B2B2;   /* 次要 / 說明文字 */
+
+  /* ── 排版 ── */
+  --font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body:    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* ── 圓角（圓滑感）── */
+  --radius-xl:   24px;   /* Modal / 登入卡片 */
+  --radius-card: 20px;   /* 日卡 / 週卡 */
+  --radius-btn:  14px;   /* 按鈕 */
+  --radius-input: 10px;  /* 輸入框 */
+  --radius-slot:   4px;  /* 時間格（規範固定） */
+
+  /* ── Soft Shadow（輕柔風格）── */
+  --shadow-xs:    0 2px  8px rgba(132,159,181,0.08);
+  --shadow-card:  0 4px 20px rgba(132,159,181,0.10);
+  --shadow-modal: 0 8px 40px rgba(100,120,140,0.16);
+  --shadow-btn:   0 2px 10px rgba(132,159,181,0.20);
+}
+
+/* ══════════════════════════════════════════════════════
+   1. Reset & Base
+══════════════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html { font-size: 16px; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text-dark);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ══════════════════════════════════════════════════════
+   2. 顯示工具類
+   ──────────────────────────────────────────────────────
+   .visible  — 安全開關：強制顯示（JS 可直接加此 class）
+   .hidden   — 強制隱藏
+   .sr-only  — 螢幕閱讀器專用
+══════════════════════════════════════════════════════ */
+.visible { display: flex !important; }  /* 安全開關：JS 加此 class 保證可見 */
+.hidden  { display: none !important; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* ══════════════════════════════════════════════════════
+   3. 初始化鎖定層 #loadingOverlay  (v1.2)
+   ──────────────────────────────────────────────────────
+   架構原則：
+     · #loadingOverlay 是頁面唯一「預設可見」的元素
+     · z-index:9999 確保它永遠蓋在所有其他覆蓋層之上
+     · onAuthStateChanged 完成前，任何其他畫面都被它遮住
+     · 隱藏後由 JS 設 display:none，不可自動恢復
+   ──────────────────────────────────────────────────────
+   所有 .screen-overlay（loginOverlay / modeSelectionScreen）
+   預設 display:none，只由 showLoginUI / showAppUI 解鎖。
+══════════════════════════════════════════════════════ */
+
+/* 初始化鎖定層：頁面首屏唯一可見，auth 完成前絕不消失 */
+#loadingOverlay {
+  position: fixed; inset: 0;
+  display: flex;              /* ← 預設可見，唯一例外 */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  z-index: 9999;              /* ← 最高層，確保蓋住一切 */
+}
+.loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.loading-text {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+  letter-spacing: 0.05em;
+  /* 三點動畫，給使用者明確的「正在處理」回饋 */
+  animation: loadingPulse 1.4s ease-in-out infinite;
+}
+@keyframes loadingPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* 所有應用畫面覆蓋層：預設全部隱藏 */
+.screen-overlay {
+  position: fixed; inset: 0;
+  display: none;              /* ← 預設隱藏，JS 顯示 */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  z-index: 3000;
+}
+
+/* loginOverlay / modeSelectionScreen 明確鎖定 display:none */
+#loginOverlay,
+#modeSelectionScreen {
+  display: none;
+}
+
+/* ── 登入卡片 ── */
+.login-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  animation: fadeInUp 0.4s ease both;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.app-title {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: var(--color-main);
+  letter-spacing: 0.08em;
+}
+.app-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  letter-spacing: 0.28em;
+  margin-bottom: 8px;
+}
+.auth-status {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+/* ── 模式選擇門 ── */
+.mode-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: var(--color-main);
+  margin-bottom: 28px;
+  letter-spacing: 0.06em;
+}
+
+/* 需求 4：模式選擇置中（.mode-selector 為規格指定的 class 名稱） */
+.mode-selector {
+  display: flex;
+  flex-direction: column;   /* 讓 .mode-buttons 垂直居中 */
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+.mode-buttons {
+  display: flex;
+  flex-direction: column;     /* 規範：垂直排列 */
+  gap: 14px;
+  width: 66vw;
+  max-width: 300px;
+}
+.mode-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;   /* 需求 9：文字絕對置中 */
+  gap: 0;
+  padding: 20px 22px;
+  border-radius: var(--radius-card);
+  border: 1.5px solid var(--border-light);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+  text-align: center;        /* 需求 9 */
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.12s;
+}
+.mode-btn:hover {
+  border-color: var(--color-main);
+  box-shadow: var(--shadow-btn);
+  transform: translateY(-1px);
+}
+.mode-btn:active { transform: translateY(0); }
+.mode-icon  { font-size: 1.5rem; flex-shrink: 0; }
+.mode-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  display: block;
+}
+.mode-desc  { display: none; }  /* 需求 3：移除描述文字 */
+
+/* ══════════════════════════════════════════════════════
+   4. 共用按鈕系統
+══════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.18s, transform 0.12s, box-shadow 0.18s;
+  outline: none;
+  letter-spacing: 0.01em;
+}
+.btn:hover  { opacity: 0.9; }
+.btn:active { transform: scale(0.97); }
+
+/* 主要按鈕（登入 / 儲存）— 莫蘭迪藍 + Soft Shadow */
+.btn-primary {
+  background: var(--color-main);
+  color: #fff;
+  padding: 13px 28px;
+  font-size: 0.95rem;
+  box-shadow: var(--shadow-btn);
+}
+.btn-primary:hover {
+  background: var(--color-main-deep);
+  box-shadow: 0 4px 14px rgba(132,159,181,0.32);
+}
+
+/* 標記完成 — 莫蘭迪綠 */
+.btn-green {
+  background: var(--morandi-green);
+  color: #fff;
+  padding: 11px 20px;
+  box-shadow: 0 2px 8px rgba(163,177,138,0.25);
+}
+
+/* 刪除 / 危險操作 */
+.btn-danger {
+  background: #f5eeee;
+  color: var(--morandi-red);
+  padding: 11px 20px;
+}
+.btn-danger:hover { background: #eddede; }
+
+/* 次要 / 取消 */
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 10px 16px;
+  font-size: 0.85rem;
+}
+.btn-ghost:hover { color: var(--text-dark); }
+
+/* 底部工具列小按鈕 */
+.btn-tool {
+  background: #F4F4F4;
+  color: var(--text-dark);
+  padding: 9px 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: 10px;
+  white-space: nowrap;
+  border: 1px solid var(--border-light);
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-tool:hover {
+  background: var(--color-main-light);
+  border-color: var(--color-main);
+  opacity: 1;
+}
+
+.btn-edit {
+  background: #f4f4f4;
+  color: var(--text-dark);
+  padding: 14px 20px;   /* 加大 padding，需求 2 */
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: var(--radius-btn);
+}
+.btn-edit:hover { background: var(--color-main-light); }
+
+.btn-icon { font-style: normal; }
+
+/* ══════════════════════════════════════════════════════
+   5. 主應用外殼
+══════════════════════════════════════════════════════ */
+#appUI {
+  display: none;            /* JS 切換為 flex */
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── 頂部導航 ── */
+.top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-xs);
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+.btn-back {
+  color: var(--color-main);
+  font-weight: 600;
+  font-size: 0.88rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px 0;
+  min-width: 52px;
+  font-family: var(--font-body);
+  transition: color 0.15s;
+}
+.btn-back:hover { color: var(--color-main-deep); }
+
+/* 月日選擇器 */
+.date-picker-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+}
+.date-picker-group select {
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-input);
+  padding: 5px 8px;
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  color: var(--text-dark);
+  background: var(--surface);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.date-picker-group select:focus {
+  border-color: var(--color-main);
+  box-shadow: 0 0 0 3px rgba(132,159,181,0.12);
+}
+.picker-sep { color: var(--text-muted); font-size: 0.85rem; }
+.nav-spacer { min-width: 52px; }
+
+/* 手機版日切換箭頭 */
+.mobile-day-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.day-arrow {
+  background: none;
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-input);
+  padding: 4px 10px;
+  color: var(--color-main);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.day-arrow:hover {
+  border-color: var(--color-main);
+  background: var(--color-main-light);
+}
+.mobile-date-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  min-width: 84px;
+  text-align: center;
+}
+
+/* ── 電腦版頂部灰色同步滾動條（規範 §三.2）── */
+.top-scroll-container {
+  height: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #f2f2f2;
+  border-bottom: 1px solid var(--border-light);
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f2f2f2;
+}
+.top-scroll-container::-webkit-scrollbar       { height: 6px; }
+.top-scroll-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+.top-scroll-inner { height: 1px; } /* 僅撐開寬度 */
+
+@media (max-width: 767px) {
+  .top-scroll-container { display: none; }
+}
+
+/* ══════════════════════════════════════════════════════
+   6. 時間格主體 — calendarView
+══════════════════════════════════════════════════════ */
+.calendar-view {
+  /* 需求 1：overflow:hidden，讓 .grid-track 的 translateX 滑動發生在視窗內 */
+  overflow: hidden;
+  overflow-y: auto;          /* 垂直仍可捲動，看完整時間軸 */
+  padding: 0;
+  flex: 1;
+  position: relative;
+}
+/* 垂直捲軸樣式 */
+.calendar-view::-webkit-scrollbar       { width: 4px; }
+.calendar-view::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
+
+/* ── 需求 1：滑動軌道 ──
+   .grid-track 是所有頁面的橫向軌道，
+   transform: translateX 讓整軌道平移 */
+.grid-track {
+  display: flex;
+  flex-direction: row;
+  /* width 由 JS 動態設定（頁數 × 100%） */
+  will-change: transform;    /* 啟用 GPU 加速 */
+}
+
+/* ── 單頁（一週 or 單日）── */
+.grid-page {
+  /* 寬度 = 軌道寬度 / 頁數，由 JS 計算後 width:300% 下每頁 33.33% */
+  flex: 0 0 calc(100% / 3);
+  display: flex;
+  flex-direction: row;       /* 電腦版：7 個 day-card 橫排 */
+  gap: 12px;
+  padding: 16px 14px 18px;
+  align-items: flex-start;
+  box-sizing: border-box;
+}
+
+.grid-page--mobile {
+  flex-direction: column;    /* 手機版：單日直排 */
+  gap: 0;
+  padding: 10px 10px 14px;
+}
+
+/* 電腦版：7 日固定寬度 */
+@media (min-width: 768px) {
+  .day-card {
+    flex: 0 0 290px;
+    flex-shrink: 0;
+  }
+}
+
+/* 手機版：全寬 */
+@media (max-width: 767px) {
+  .day-card {
+    flex: 0 0 100%;
+  }
+  .grid-page {
+    flex: 0 0 calc(100% / 3);
+  }
+}
+
+/* ── 日卡（Day Card）── */
+.day-card {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  padding: 14px 10px 10px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  /* 規範：白色大格子為底，分隔每天 */
+}
+.day-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.day-date-label {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-main);
+  text-align: center;
+}
+.todo-add-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.15s, transform 0.12s;
+}
+.todo-add-btn:hover {
+  color: var(--color-main);
+  transform: scale(1.15);
+}
+
+/* ── 時間列 ── */
+.time-row {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: start;
+  gap: 0;  /* 規範：無縫隙 */
+}
+.time-label {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  text-align: right;
+  padding-right: 7px;
+  transform: translateY(-8px);
+  height: 0;
+  line-height: 1;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* ── 格子（Slot）── */
+/* 規範：1:1 正方形、border-radius:4px、無縫隙、淡分隔線 */
+.slot {
+  background: var(--slot-empty);
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-slot);
+  border-bottom: 1px solid var(--slot-divider);
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  transition: background 0.1s;
+}
+.slot:hover { background: #d4d4d4; }
+
+/* 浪費時間警示（規範：莫蘭迪紫 #B8B5C3）*/
+.slot.wasted { background: var(--color-wasted) !important; }
+
+/* ══════════════════════════════════════════════════════
+   7. 任務填色區塊（Task Text Block）
+   規範：文字置中 flex、白字、z-index > slot
+══════════════════════════════════════════════════════ */
+.task-text-block {
+  position: absolute;
+  left: 0; right: 0;
+  border-radius: var(--radius-slot);
+  display: flex;
+  align-items: center;      /* 規範：垂直置中 */
+  justify-content: center;  /* 規範：水平置中 */
+  z-index: 10;              /* 規範：高於 slot（z-index:1）*/
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+}
+.task-label {
+  color: #fff;              /* 規範：莫蘭迪色背景一律白字 */
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.3;
+  padding: 2px 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 92%;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+/* ══════════════════════════════════════════════════════
+   8. 底部工具列
+══════════════════════════════════════════════════════ */
+.bottom-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;                    /* 子元素自行控制間距 */
+  padding: 10px 14px 22px;
+  background: var(--surface);
+  border-top: 1px solid var(--border-light);
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  position: relative;
+  box-shadow: 0 -2px 12px rgba(132,159,181,0.06);
+}
+.sync-status {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  position: absolute;        /* 脫離流，不影響 footer-actions 置中 */
+  right: 14px;
+  bottom: 10px;
+}
+/* 需求 3：底部功能列置中（.footer-actions 為規格指定的 class 名稱） */
+.footer-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  flex: 1;                  /* 在 bottom-toolbar 內撐滿可用空間 */
+}
+
+
+/* ══════════════════════════════════════════════════════
+   9. Modal（通用）
+   規範：66vw、置中、內容水平置中
+══════════════════════════════════════════════════════ */
+.modal {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(80,90,100,0.28);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  justify-content: center;
+  align-items: center;
+  z-index: 1100;
+  padding: 16px;
+}
+.modal.open { display: flex; }
+
+.modal-content {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: 28px 22px 20px;
+  width: 66vw;              /* 規範：66vw */
+  max-width: 360px;
+  max-height: 88vh;
+  overflow-y: auto;
+  text-align: center;       /* 規範：內容水平置中 */
+  box-shadow: var(--shadow-modal);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: modalIn 0.22s ease both;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-main);
+  margin-bottom: 2px;
+  line-height: 1.5;
+}
+.modal-content .btn { width: 100%; }
+
+/* 取消並關閉 / 刪除行程：各佔一半，並排最下方 */
+.modal-btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 2px;
+}
+.modal-btn-row .btn { width: 100%; }
+
+/* ── 計時器（規範：莫蘭迪藍、置中、00:00:00）── */
+.timer-display {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 300;
+  color: var(--morandi-blue);
+  text-align: center;
+  letter-spacing: 0.08em;
+  padding: 6px 0 2px;
+}
+
+/* ── 顏色選擇器（七色圓點）── */
+.color-picker-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+.color-dot {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2.5px solid transparent;
+  transition: border-color 0.15s, transform 0.12s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+.color-dot:hover  { transform: scale(1.14); }
+.color-dot.selected {
+  border-color: #3a3a3a;           /* 規範：選中加黑框 */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+
+/* ── 編輯表單欄位 ── */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+}
+.form-label {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.form-input {
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-input);
+  padding: 8px 11px;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--text-dark);
+  background: var(--surface);
+  outline: none;
+  width: 100%;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.form-input:focus {
+  border-color: var(--color-main);
+  box-shadow: 0 0 0 3px rgba(132,159,181,0.14);
+}
+/* 規範：時間欄位 type="text"，禁止時鐘圓盤 */
+.form-input[data-type="time"]::placeholder { color: #ccc; }
+.form-input[readonly] {
+  background: #f7f7f7;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ── 讀書總結 Select（規範：幾小時/幾分鐘，嚴禁手動輸入分鐘）── */
+.summary-select-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--text-dark);
+}
+.summary-select-row select {
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-input);
+  padding: 5px 8px;
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  color: var(--text-dark);
+  background: var(--surface);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.18s;
+}
+.summary-select-row select:focus { border-color: var(--color-main); }
+
+/* ── 待辦清單輸入列 ── */
+.todo-item-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.todo-checkbox {
+  width: 17px; height: 17px;
+  accent-color: var(--morandi-green);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.todo-input {
+  flex: 1;
+  border: none;
+  border-bottom: 1.5px solid var(--border-light);
+  padding: 5px 2px;
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  color: var(--text-dark);
+  background: transparent;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.todo-input:focus { border-color: var(--color-main); }
+.todo-add-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+/* ══════════════════════════════════════════════════════
+   10. 週計畫模式
+══════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════
+   需求 2：週計畫強制水平排列
+   .week-container 是週計畫的外層容器
+   .day-column 是每個日期欄位（七分之一寬）
+══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   週計畫容器 — 需求 §二.2 強制 7 欄水平排列
+   overflow-x:hidden 確保用戶無法滑出 7 天範圍
+══════════════════════════════════════════════════════ */
+.week-container {
+  display: flex !important;
+  flex-direction: row !important;    /* 強制水平，絕不垂直堆疊 */
+  flex-wrap: nowrap !important;      /* 禁止換行 */
+  align-items: stretch;
+  width: 100% !important;            /* 需求 §二.2 */
+  min-height: 320px;
+  overflow-x: hidden;                /* 需求 §二.2：禁止滑出 7 天範圍 */
+  overflow-y: visible;
+  box-sizing: border-box;
+}
+
+/* 每日欄位：精確七等分（需求 §一.2 & §二.2）*/
+.day-column {
+  flex: 0 0 14.2857% !important;    /* 100% ÷ 7，精確值 */
+  min-width: 0;                      /* 防止撐破 flex 計算 */
+  max-width: 14.2857%;
+  box-sizing: border-box;
+  padding: 12px 10px;
+  border-right: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.day-column:last-child {
+  border-right: none;
+}
+
+/* 每日欄位標題（日期 + 星期）*/
+.day-column-header {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-main);
+  text-align: center;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+.day-column.today .day-column-header {
+  color: var(--morandi-blue);
+  font-weight: 700;
+}
+.week-card {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  padding: 24px 20px 20px;   /* 需求 9：更寬敞的 padding */
+  box-shadow: var(--shadow-card);
+  flex: 0 0 280px;
+  min-height: 280px;          /* 需求 9：更高的最小高度 */
+  margin: 0 8px;
+}
+.week-card-title {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-main);
+  margin-bottom: 12px;
+}
+.week-goal-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.week-goal-checkbox {
+  width: 17px; height: 17px;
+  accent-color: var(--color-main);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.week-goal-input {
+  flex: 1;
+  border: none;
+  border-bottom: 1.5px solid var(--border-light);
+  padding: 4px 2px;
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  color: var(--text-dark);
+  background: transparent;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.week-goal-input:focus { border-color: var(--color-main); }
+.week-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1.5px dashed var(--border-light);
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-top: 6px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.week-add-btn:hover {
+  border-color: var(--color-main);
+  color: var(--color-main);
+}
+
+/* ══════════════════════════════════════════════════════
+   需求 9：時間格切換滑動動畫
+══════════════════════════════════════════════════════ */
+@keyframes gridFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes gridSlideLeft {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes gridSlideRight {
+  from { opacity: 0; transform: translateX(-32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.grid-fade-in   { animation: gridFadeIn    0.22s ease both; }
+.grid-slide-left  { animation: gridSlideLeft  0.22s ease both; }
+.grid-slide-right { animation: gridSlideRight 0.22s ease both; }
+
+/* ── 需求 8：Modal 右上角叉叉 ── */
+.modal-content {
+  position: relative;  /* 讓 .modal-close-btn 的 absolute 定位基準 */
+}
+.modal-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  line-height: 1;
+}
+.modal-close-btn:hover {
+  background: var(--border-light);
+  color: var(--text-dark);
+}
+
+/* ══════════════════════════════════════════════════════
+   需求 2：今日欄高亮
+══════════════════════════════════════════════════════ */
+/* 需求 1：.today 僅作為 JS scrollLeft 置中的錨點，絕不渲染任何邊框或輪廓 */
+.day-card.today,
+.week-card.today {
+  box-shadow: var(--shadow-card) !important;  /* 強制覆蓋，移除 inset 邊框 */
+  border: none !important;
+  outline: none !important;
+}
+.today-label {
+  color: inherit;       /* 回歸父元素顏色，無任何特殊樣式 */
+  font-weight: inherit;
+}
