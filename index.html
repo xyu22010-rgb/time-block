@@ -38,6 +38,11 @@
     syncStatus          — 雲端同步狀態文字
     modal               — 通用 Modal 遮罩
     modalBody           — Modal 內容區
+    planDatePicker      — 週計畫月份選單（電腦版）
+    planMonth           — 週計畫月份 select
+    mobileDateInput     — 手機版日期選擇器（date input）
+    mobilePlanNav       — 手機版週計畫月份導覽
+    mobilePlanMonth     — 手機版週計畫月份 select
 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -47,8 +52,6 @@
         maximum-scale=1.0, user-scalable=no">
   <title>靈魂時光表 2.0</title>
 
-  <link rel="shortcut icon" href="icon-192.png" type="image/png">
-  
   <!-- ① 樣式表 -->
   <link rel="stylesheet" href="style.css">
 
@@ -136,7 +139,7 @@
     <header class="top-nav">
       <button id="backBtn" class="btn-back" aria-label="返回模式選擇">❮ 返回</button>
 
-      <!-- 月日跳轉選單（週計畫模式下由 JS 隱藏 jumpDay） -->
+      <!-- 時間格模式：月 + 日 選單 -->
       <div class="date-picker-group" id="datePicker">
         <select id="jumpMonth" aria-label="月份"></select>
         <span class="picker-sep">月</span>
@@ -144,11 +147,25 @@
         <span class="picker-sep">日</span>
       </div>
 
-      <!-- 手機版：左右日切換箭頭（電腦版 JS 隱藏） -->
+      <!-- 週計畫模式：僅月份選單（與時間格完全隔離）-->
+      <div class="date-picker-group" id="planDatePicker" style="display:none">
+        <select id="planMonth" aria-label="週計畫月份"></select>
+        <span class="picker-sep">月</span>
+      </div>
+
+      <!-- 手機版：時間格日切換（電腦版 JS 隱藏）-->
       <div class="mobile-day-nav" id="mobileDayNav" style="display:none">
         <button id="prevDayBtn" class="day-arrow" aria-label="前一天">❮</button>
-        <span id="mobileDateLabel" class="mobile-date-label"></span>
+        <!-- 中央：date input，點擊彈出系統日曆，比下拉選單更直覺 -->
+        <input type="date" id="mobileDateInput" class="mobile-date-input"
+               aria-label="選擇日期">
         <button id="nextDayBtn" class="day-arrow" aria-label="後一天">❯</button>
+      </div>
+
+      <!-- 手機版週計畫：僅顯示月份選單 -->
+      <div class="mobile-day-nav" id="mobilePlanNav" style="display:none">
+        <select id="mobilePlanMonth" class="mobile-plan-month" aria-label="週計畫月份"></select>
+        <span class="picker-sep" style="color:var(--text-muted);font-size:0.82rem">月</span>
       </div>
 
       <div class="nav-spacer"></div><!-- 右側平衡佔位 -->

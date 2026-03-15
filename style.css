@@ -473,49 +473,53 @@ body {
 .grid-track {
   display: flex;
   flex-direction: row;
-  /* width 由 JS 動態設定（頁數 × 100%） */
-  will-change: transform;    /* 啟用 GPU 加速 */
+  height: 100%;              /* 撐滿 calendar-view 高度 */
+  will-change: transform;
 }
 
-/* ── 單頁（一週 or 單日）── */
+/* ── 電腦版單頁（一整週）── */
 .grid-page {
-  /* 電腦版：軌道寬度 / 3，7 個 day-card 橫排 */
+  /* 每頁 = grid-track 的 1/3（軌道 300% 時每頁正好 = 視窗寬）*/
   flex: 0 0 calc(100% / 3);
   display: flex;
   flex-direction: row;
-  gap: 12px;
-  padding: 16px 14px 18px;
   align-items: flex-start;
-  box-sizing: border-box;
-}
-
-/* 手機版單日頁：佔滿 calendar-view 寬度，垂直自然伸展 */
-.grid-page--mobile {
-  flex-direction: column;
+  /* 關鍵修正：頁面本身可橫向捲動，7 張卡片不溢出到下一頁 */
+  overflow-x: auto;
+  overflow-y: hidden;
   gap: 0;
-  padding: 8px 8px 16px;
-  /* 高度不設限，讓 48 格自然撐高，由 calendar-view 垂直捲動 */
-  height: auto;
-  min-height: 100%;
+  padding: 12px 8px 16px;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
 }
+/* 隱藏 grid-page 橫向捲軸（由整頁操作，不顯示難看的捲軸）*/
+.grid-page::-webkit-scrollbar { height: 0; }
 
-/* 電腦版：7 日固定寬度 */
+/* ── 電腦版 day-card：7 等分比例寬 ── */
 @media (min-width: 768px) {
   .day-card {
-    flex: 0 0 290px;
-    flex-shrink: 0;
+    /* min-width 確保每張卡片至少 140px，但隨視窗比例縮放 */
+    flex: 0 0 calc(100% / 7);
+    min-width: 140px;
+    max-width: 260px;
   }
 }
 
-/* 手機版：day-card 佔滿頁面寬度 */
+/* ── 手機版單日頁 ── */
+.grid-page--mobile {
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  gap: 0;
+  padding: 8px 8px 16px;
+  height: 100%;
+}
+
+/* 手機版：day-card 佔全寬 */
 @media (max-width: 767px) {
   .day-card {
     flex: 0 0 100%;
     width: 100%;
-  }
-  /* grid-page--mobile 下的 grid-page 寬度由軌道決定 */
-  .grid-page {
-    flex: 0 0 calc(100% / 3);
   }
 }
 
@@ -1155,4 +1159,133 @@ body {
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--text-dark);
+}
+
+/* ══════════════════════════════════════════════════════
+   週計畫 — week-card-block（與 day-card 相同外觀）
+   每週一個白色圓角卡片，用 box-shadow 而非邊框線分隔
+══════════════════════════════════════════════════════ */
+.week-card-block {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  padding: 16px 14px 14px;
+  box-shadow: var(--shadow-card);
+  flex-shrink: 0;
+}
+.week-card-block.current-week {
+  box-shadow: var(--shadow-card), 0 0 0 1.5px var(--color-main-light);
+}
+
+/* 卡片標題 */
+.week-card-title {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+.week-title-num {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-main);
+}
+.week-title-range {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* 7 天橫排 */
+.week-days-row {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.week-days-row::-webkit-scrollbar { height: 3px; }
+.week-days-row::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+/* 每日欄位 */
+.week-day-col {
+  flex: 0 0 calc(100% / 7);
+  min-width: 110px;
+  padding: 8px 8px 6px;
+  border-right: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
+}
+.week-day-col:last-child { border-right: none; }
+.week-day-col.today { background: var(--color-main-light); border-radius: 6px; }
+
+/* 日期標題列 */
+.week-day-hdr {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+.week-day-col.today .week-day-hdr { color: var(--color-main); }
+
+/* 週計畫儲存按鈕縮小版 */
+.week-save-btn {
+  padding: 5px 0;
+  font-size: 0.72rem;
+  margin-top: 4px;
+  width: 100%;
+}
+
+/* 手機版週計畫：欄位垂直堆疊 */
+@media (max-width: 767px) {
+  .week-days-row {
+    flex-direction: column;
+    overflow-x: visible;
+    overflow-y: visible;
+  }
+  .week-day-col {
+    flex: none;
+    min-width: 0;
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+    padding: 10px 12px;
+  }
+  .week-day-col:last-child { border-bottom: none; }
+}
+
+/* 手機版月份選單 */
+.mobile-plan-month {
+  background: var(--surface);
+  border: 1.5px solid var(--border-light);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 0.88rem;
+  color: var(--text-dark);
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+/* 手機版日期 input（date picker）*/
+.mobile-date-input {
+  background: var(--surface);
+  border: 1.5px solid var(--border-light);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 0.88rem;
+  color: var(--text-dark);
+  font-family: var(--font-body);
+  cursor: pointer;
+  min-width: 130px;
+  text-align: center;
+}
+.mobile-date-input::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
 }
