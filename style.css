@@ -473,35 +473,38 @@ body {
 .grid-track {
   display: flex;
   flex-direction: row;
-  height: 100%;              /* 撐滿 calendar-view 高度 */
+  height: 100%;
   will-change: transform;
 }
 
-/* ── 電腦版單頁（一整週）── */
+/* ══ 電腦版單頁（一整週）══
+   架構：
+   - .calendar-view 是視窗（overflow-x: hidden，寬 = 螢幕可視寬）
+   - .grid-track 寬 = calendarView × 3（三頁軌道）
+   - .grid-page 寬 = grid-track / 3 = calendarView 可視寬
+   - .day-card 固定 290px，7 張超出 grid-page 寬度
+   - grid-page 設 overflow-x: hidden，每次只顯示 calendarView 可見部分的 7 張
+
+   「只顯示 7 天」的保證：
+     calendarView overflow-x:hidden + translateX 只讓中間那頁可見
+     grid-page 本身也 overflow-x:hidden，左右兩頁完全不可見
+*/
 .grid-page {
-  /* 每頁 = grid-track 的 1/3（軌道 300% 時每頁正好 = 視窗寬）*/
   flex: 0 0 calc(100% / 3);
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  /* 關鍵修正：頁面本身可橫向捲動，7 張卡片不溢出到下一頁 */
-  overflow-x: auto;
-  overflow-y: hidden;
-  gap: 0;
-  padding: 12px 8px 16px;
+  overflow: hidden;          /* 嚴格裁切：本頁只顯示自己的 7 張卡片 */
+  gap: 10px;
+  padding: 12px 10px 16px;
   box-sizing: border-box;
-  -webkit-overflow-scrolling: touch;
 }
-/* 隱藏 grid-page 橫向捲軸（由整頁操作，不顯示難看的捲軸）*/
-.grid-page::-webkit-scrollbar { height: 0; }
 
-/* ── 電腦版 day-card：7 等分比例寬 ── */
+/* ── 電腦版 day-card：固定 290px（恢復原始大小）── */
 @media (min-width: 768px) {
   .day-card {
-    /* min-width 確保每張卡片至少 140px，但隨視窗比例縮放 */
-    flex: 0 0 calc(100% / 7);
-    min-width: 140px;
-    max-width: 260px;
+    flex: 0 0 290px;
+    flex-shrink: 0;           /* 嚴禁壓縮，保持 290px */
   }
 }
 
@@ -520,6 +523,7 @@ body {
   .day-card {
     flex: 0 0 100%;
     width: 100%;
+    flex-shrink: 0;
   }
 }
 
@@ -739,16 +743,26 @@ body {
   background: var(--surface);
   border-radius: var(--radius-xl);
   padding: 28px 22px 20px;
-  width: 66vw;              /* 規範：66vw */
-  max-width: 360px;
+  width: 66vw;
+  max-width: 420px;          /* 電腦版稍寬 */
   max-height: 88vh;
   overflow-y: auto;
-  text-align: center;       /* 規範：內容水平置中 */
+  text-align: center;
   box-shadow: var(--shadow-modal);
   display: flex;
   flex-direction: column;
   gap: 10px;
   animation: modalIn 0.22s ease both;
+  position: relative;        /* 供 modal-close-btn absolute 定位 */
+}
+
+/* 手機版 Modal：佔滿螢幕寬度 */
+@media (max-width: 767px) {
+  .modal-content {
+    width: 92vw;             /* 手機版加寬至 92% 視窗寬 */
+    max-width: none;         /* 移除最大寬度限制 */
+    padding: 24px 18px 18px;
+  }
 }
 
 @keyframes modalIn {

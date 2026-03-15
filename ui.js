@@ -212,7 +212,7 @@ function _initPlanMonthPicker() {
     sel.innerHTML = '';
     for (var i = 1; i <= 12; i++) {
       var opt = document.createElement('option');
-      opt.value = i; opt.textContent = i + ' 月';
+      opt.value = i; opt.textContent = i;  /* 只填數字，HTML 的「月」字負責顯示 */
       if (i === curM) opt.selected = true;
       sel.appendChild(opt);
     }
@@ -295,11 +295,10 @@ function renderWeekView(year, month) {
   var view = document.getElementById('calendarView');
   if (!view) return;
 
-  /* 預設當月 */
   if (year  === undefined) year  = new Date().getFullYear();
   if (month === undefined) month = new Date().getMonth();
 
-  /* 重設 calendarView 樣式為週計畫模式（垂直捲動列表）*/
+  /* 週計畫模式：垂直捲動列表 */
   view.style.overflow      = '';
   view.style.overflowX     = 'hidden';
   view.style.overflowY     = 'auto';
@@ -310,22 +309,19 @@ function renderWeekView(year, month) {
   view.dataset.mode        = 'plan';
   view.innerHTML           = '';
 
-  var today  = new Date(); today.setHours(0,0,0,0);
-  var weeks  = _getMonthWeeks(year, month);
+  var today = new Date(); today.setHours(0,0,0,0);
+  var weeks = _getMonthWeeks(year, month);
 
   weeks.forEach(function(w) {
-    /* ── week-card：外觀與 day-card 相同（白色圓角卡片）── */
+    /* ── 白色圓角卡片（與 day-card 相同外觀）── */
     var card = document.createElement('div');
     card.className = 'week-card-block';
-
-    /* 判斷今日是否在本週 */
     var isCurrentWeek = (today >= w.sun && today <= w.sat);
     if (isCurrentWeek) card.classList.add('current-week');
 
-    /* ── 卡片標題「第 X 週 (m/dd ~ m/dd)」── */
+    /* ── 標題：「第 X 週 (m/dd ~ m/dd)」── */
     var sunLabel = (w.sun.getMonth()+1) + '/' + String(w.sun.getDate()).padStart(2,'0');
     var satLabel = (w.sat.getMonth()+1) + '/' + String(w.sat.getDate()).padStart(2,'0');
-
     var titleEl = document.createElement('div');
     titleEl.className = 'week-card-title';
     titleEl.innerHTML =
@@ -333,52 +329,32 @@ function renderWeekView(year, month) {
       '<span class="week-title-range"> (' + sunLabel + ' ~ ' + satLabel + ')</span>';
     card.appendChild(titleEl);
 
-    /* ── 7 天欄位（橫排）── */
-    var daysRow = document.createElement('div');
-    daysRow.className = 'week-days-row';
+    /* ── 目標區域（以「週」為單位，不顯示每日日期）── */
+    /* weekKey 以週日日期為鍵，整週共用同一個目標清單 */
+    var weekKey  = _makeWeekDayKey(w.sun);
+    var goals    = getWeeklyGoals(weekKey);
+    if (!goals.length) goals = [{ id: generateId(), text: '', checked: false }];
 
-    for (var i = 0; i < 7; i++) {
-      var day = new Date(w.sun);
-      day.setDate(w.sun.getDate() + i);
-      var dayNames = ['日','一','二','三','四','五','六'];
-      var isToday  = (day.toDateString() === today.toDateString());
-      var dayKey   = _makeWeekDayKey(day);
-      var goals    = getWeeklyGoals(dayKey);
-      if (!goals.length) goals = [{ id: generateId(), text: '', checked: false }];
+    var goalList = document.createElement('div');
+    goalList.id        = 'goals-' + weekKey;
+    goalList.innerHTML = _buildWeekGoalRows(goals);
+    card.appendChild(goalList);
 
-      var col = document.createElement('div');
-      col.className = 'week-day-col' + (isToday ? ' today' : '');
+    /* 新增按鈕 */
+    var addBtn = document.createElement('button');
+    addBtn.className   = 'week-add-btn';
+    addBtn.textContent = '＋ 新增目標';
+    addBtn.onclick     = (function(k){ return function(){ _addWeekGoal(k); }; })(weekKey);
+    card.appendChild(addBtn);
 
-      /* 日期小標題 */
-      var hdr = document.createElement('div');
-      hdr.className   = 'week-day-hdr';
-      hdr.textContent = (day.getMonth()+1) + '/' + day.getDate() + ' (週' + dayNames[day.getDay()] + ')';
-      col.appendChild(hdr);
+    /* 儲存按鈕 */
+    var saveBtn = document.createElement('button');
+    saveBtn.className   = 'btn btn-primary';
+    saveBtn.style.cssText = 'width:100%;margin-top:10px;font-size:0.85rem';
+    saveBtn.textContent = '儲存本週目標';
+    saveBtn.onclick     = (function(k){ return function(){ _saveWeekGoals(k); }; })(weekKey);
+    card.appendChild(saveBtn);
 
-      /* 目標清單 */
-      var goalList = document.createElement('div');
-      goalList.id        = 'goals-' + dayKey;
-      goalList.innerHTML = _buildWeekGoalRows(goals);
-      col.appendChild(goalList);
-
-      /* 新增按鈕 */
-      var addBtn = document.createElement('button');
-      addBtn.className   = 'week-add-btn';
-      addBtn.textContent = '＋';
-      addBtn.onclick     = (function(k){ return function(){ _addWeekGoal(k); }; })(dayKey);
-      col.appendChild(addBtn);
-
-      /* 儲存按鈕 */
-      var saveBtn = document.createElement('button');
-      saveBtn.className   = 'btn btn-primary week-save-btn';
-      saveBtn.textContent = '儲存';
-      saveBtn.onclick     = (function(k){ return function(){ _saveWeekGoals(k); }; })(dayKey);
-      col.appendChild(saveBtn);
-
-      daysRow.appendChild(col);
-    }
-
-    card.appendChild(daysRow);
     view.appendChild(card);
   });
 
