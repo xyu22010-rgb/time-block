@@ -337,23 +337,29 @@ function renderWeekView(year, month) {
 
     var goalList = document.createElement('div');
     goalList.id        = 'goals-' + weekKey;
+    goalList.className = 'week-goals-list';
     goalList.innerHTML = _buildWeekGoalRows(goals);
     card.appendChild(goalList);
+
+    /* 底部操作列（新增 + 儲存） */
+    var footer = document.createElement('div');
+    footer.className = 'week-card-footer';
 
     /* 新增按鈕 */
     var addBtn = document.createElement('button');
     addBtn.className   = 'week-add-btn';
     addBtn.textContent = '＋ 新增目標';
     addBtn.onclick     = (function(k){ return function(){ _addWeekGoal(k); }; })(weekKey);
-    card.appendChild(addBtn);
+    footer.appendChild(addBtn);
 
     /* 儲存按鈕 */
     var saveBtn = document.createElement('button');
-    saveBtn.className   = 'btn btn-primary';
-    saveBtn.style.cssText = 'width:100%;margin-top:10px;font-size:0.85rem';
+    saveBtn.className   = 'btn btn-primary week-save-btn';
     saveBtn.textContent = '儲存本週目標';
     saveBtn.onclick     = (function(k){ return function(){ _saveWeekGoals(k); }; })(weekKey);
-    card.appendChild(saveBtn);
+    footer.appendChild(saveBtn);
+
+    card.appendChild(footer);
 
     view.appendChild(card);
   });

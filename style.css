@@ -454,6 +454,8 @@ body {
   padding: 0;
   flex: 1;
   position: relative;
+  /* 確保裁切上下文正確建立，防止 grid-page 溢出 */
+  isolation: isolate;
 }
 .calendar-view::-webkit-scrollbar       { width: 4px; }
 .calendar-view::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
@@ -475,6 +477,8 @@ body {
   flex-direction: row;
   height: 100%;
   will-change: transform;
+  /* 防止軌道本身產生捲軸或溢出 */
+  overflow: visible;
 }
 
 /* ══ 電腦版單頁（一整週）══
@@ -490,11 +494,14 @@ body {
      grid-page 本身也 overflow-x:hidden，左右兩頁完全不可見
 */
 .grid-page {
+  /* 精確等於 calendar-view 的可視寬（= 1/3 of 300%-wide track）*/
   flex: 0 0 calc(100% / 3);
+  width: calc(100% / 3);       /* 明確指定 width，防止 flex 計算偏差 */
+  min-width: 0;                /* 防止 flex 子元素撐破父容器 */
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  overflow: hidden;          /* 嚴格裁切：本頁只顯示自己的 7 張卡片 */
+  overflow: hidden;            /* 嚴格裁切：只顯示可見範圍內的卡片 */
   gap: 10px;
   padding: 12px 10px 16px;
   box-sizing: border-box;
@@ -985,12 +992,6 @@ body {
   color: var(--color-main);
   margin-bottom: 12px;
 }
-.week-goal-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
 .week-goal-checkbox {
   width: 17px; height: 17px;
   accent-color: var(--color-main);
@@ -999,6 +1000,7 @@ body {
 }
 .week-goal-input {
   flex: 1;
+  min-width: 0;
   border: none;
   border-bottom: 1.5px solid var(--border-light);
   padding: 4px 2px;
@@ -1007,6 +1009,7 @@ body {
   color: var(--text-dark);
   background: transparent;
   outline: none;
+  width: 100%;
   transition: border-color 0.15s;
 }
 .week-goal-input:focus { border-color: var(--color-main); }
@@ -1208,6 +1211,55 @@ body {
   font-size: 0.75rem;
   font-weight: 400;
   color: var(--text-muted);
+}
+
+/* ── 電腦版：目標橫向排列（每個目標一欄）── */
+.week-goals-list {
+  display: flex;
+  flex-direction: row;      /* 電腦版：左→右橫排 */
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.week-goal-row {
+  display: flex;
+  flex-direction: column;   /* 電腦版：checkbox 在上，input 在下 */
+  align-items: flex-start;
+  gap: 5px;
+  flex: 0 0 auto;
+  min-width: 130px;
+  max-width: 200px;
+}
+
+/* 手機版：目標垂直堆疊 */
+@media (max-width: 767px) {
+  .week-goals-list {
+    flex-direction: column;
+  }
+  .week-goal-row {
+    flex-direction: row;    /* 手機版：checkbox 左側，input 右側 */
+    align-items: center;
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+}
+
+/* 週計畫底部操作列（新增＋儲存）*/
+.week-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+@media (max-width: 767px) {
+  .week-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 /* 7 天橫排 */

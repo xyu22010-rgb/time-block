@@ -107,22 +107,28 @@ function _renderDesktopSlide(view, targetDate, direction) {
 
   track = view.querySelector('.grid-track');
   var slideDir = direction === 'left' ? 1 : -1; // left=往未來=往左滑
+  var viewW = view.clientWidth || window.innerWidth;
 
   /* 在軌道邊緣預建新一週 */
   var newSun  = new Date(sun);
   var newPage = _buildWeekPage(newSun);
+  /* 設定新頁的精確寬度 */
+  newPage.style.width    = viewW + 'px';
+  newPage.style.flexBasis = viewW + 'px';
+  newPage.style.minWidth  = viewW + 'px';
+  newPage.style.maxWidth  = viewW + 'px';
 
   if (slideDir === 1) {
-    /* 往未來：新頁加在右側（index 2） */
+    /* 往未來：新頁加在右側 */
     track.appendChild(newPage);
   } else {
-    /* 往過去：新頁加在左側（index 0）*/
+    /* 往過去：新頁加在左側 */
     track.insertBefore(newPage, track.firstChild);
   }
 
-  /* 更新軌道寬度 */
+  /* 更新軌道寬度（px）*/
   var pages = track.querySelectorAll('.grid-page');
-  track.style.width = (pages.length * 100) + '%';
+  track.style.width = (pages.length * viewW) + 'px';
 
   /* 無動畫跳到新的「當前」位置（避免跳閃） */
   var newIdx = slideDir === 1
@@ -133,7 +139,7 @@ function _renderDesktopSlide(view, targetDate, direction) {
     /* 左側插入後，需先無動畫跳到 index+1，再動畫回 index */
     track.style.transition = 'none';
     _currentPageIndex = _currentPageIndex + 1;
-    track.style.transform = 'translateX(-' + (_currentPageIndex * (100/pages.length)) + '%)';
+    track.style.transform = 'translateX(-' + (_currentPageIndex * viewW) + 'px)';
     void track.offsetWidth; // reflow
     newIdx = _currentPageIndex - 1;
   }
@@ -141,7 +147,7 @@ function _renderDesktopSlide(view, targetDate, direction) {
   /* 啟動動畫滑到目標頁 */
   track.style.transition = 'transform 0.4s ease-in-out';
   _currentPageIndex = newIdx;
-  track.style.transform = 'translateX(-' + (_currentPageIndex * (100/pages.length)) + '%)';
+  track.style.transform = 'translateX(-' + (_currentPageIndex * viewW) + 'px)';
 
   /* 動畫結束後清理多餘頁面，保留三頁（左、當前、右） */
   track.addEventListener('transitionend', function cleanup() {
@@ -167,11 +173,21 @@ function _buildDesktopTrack(view, sun) {
     track.appendChild(_buildWeekPage(pageSun));
   });
 
-  track.style.width     = '300%';
-  track.style.transform = 'translateX(-' + (1 * 100/3).toFixed(4) + '%)'; // 顯示中間頁
+  /* 使用 px 精確寬度，避免 % 計算在不同瀏覽器的誤差 */
+  var viewW = view.clientWidth || window.innerWidth;
+  track.style.width     = (viewW * 3) + 'px';
+  track.style.transform = 'translateX(-' + viewW + 'px)';   /* 顯示中間頁 */
   track.style.transition = 'none';
   view.appendChild(track);
   _currentPageIndex = 1;
+
+  /* 為每個 grid-page 設定精確 px 寬度 */
+  track.querySelectorAll('.grid-page').forEach(function(p) {
+    p.style.width    = viewW + 'px';
+    p.style.flexBasis = viewW + 'px';
+    p.style.minWidth  = viewW + 'px';
+    p.style.maxWidth  = viewW + 'px';
+  });
 }
 
 /** 建立一週的 grid-page（包含 7 個 day-card） */
@@ -193,6 +209,8 @@ function _trimTrackToThree(track, view, targetDate) {
   var pages = track.querySelectorAll('.grid-page');
   if (pages.length <= 3) return;
 
+  var viewW = view.clientWidth || window.innerWidth;
+
   /* 找到當前顯示的頁（最近 _currentWeekSun 匹配的） */
   var currentSunStr = _currentWeekSun ? _currentWeekSun.toDateString() : '';
   var centerIdx = 1;
@@ -209,9 +227,9 @@ function _trimTrackToThree(track, view, targetDate) {
 
   track.innerHTML = '';
   keep.forEach(function(p) { track.appendChild(p); });
-  track.style.width     = '300%';
+  track.style.width      = (viewW * 3) + 'px';
   track.style.transition = 'none';
-  track.style.transform  = 'translateX(-' + (100/3).toFixed(4) + '%)';
+  track.style.transform  = 'translateX(-' + viewW + 'px)';   /* 中間頁 */
   _currentPageIndex = 1;
 }
 
@@ -461,4 +479,28 @@ function _syncTopScrollWidth() {
       topContainer.scrollLeft = calView.scrollLeft;
     });
   }
+}
+
+/**
+ * 視窗大小改變時，重新套用 px 寬度（由 ui.js resize handler 呼叫）
+ * 每次 renderTimeGrid 重建 track 時已會重算，
+ * 此函式供需要就地更新（不重建）的場合使用。
+ */
+function _refreshDesktopTrackWidths() {
+  var calView = document.getElementById('calendarView');
+  if (!calView || calView.dataset.mode !== 'desktop') return;
+  var track = calView.querySelector('.grid-track');
+  if (!track) return;
+  var pages = track.querySelectorAll('.grid-page');
+  var viewW = calView.clientWidth || window.innerWidth;
+  track.style.width = (pages.length * viewW) + 'px';
+  pages.forEach(function(p) {
+    p.style.width     = viewW + 'px';
+    p.style.flexBasis = viewW + 'px';
+    p.style.minWidth  = viewW + 'px';
+    p.style.maxWidth  = viewW + 'px';
+  });
+  /* 重新置中到當前頁 */
+  track.style.transition = 'none';
+  track.style.transform  = 'translateX(-' + (_currentPageIndex * viewW) + 'px)';
 }
