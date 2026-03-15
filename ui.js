@@ -88,7 +88,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 250));
 
-  initDatePicker(); // 寶，把這行補在這裡！
   responsive();
 });
 
@@ -259,13 +258,13 @@ function renderWeekView(refDate) {
 
   /* 重設 calendarView 為週計畫模式 */
   view.style.overflow      = '';
-  view.style.overflowX     = 'hidden';   /* 禁止橫向滑出 7 天範圍 */
-  view.style.overflowY     = 'auto';
-  view.style.flexDirection = 'column';   /* view 本身垂直排，container 在內橫排 */
+  view.style.overflowX     = (window.innerWidth < 768) ? 'hidden' : 'hidden';
+  view.style.overflowY     = 'auto';     /* 垂直捲動（手機版週計畫由上而下）*/
+  view.style.flexDirection = 'column';
   view.style.padding       = '0';
   view.style.gap           = '0';
   view.dataset.mode        = 'plan';
-  view.innerHTML           = '';         /* 清空，等同 container.innerHTML = '' 的上層版本 */
+  view.innerHTML           = '';
 
   /* ── 導覽列（上一週 / 本週標題 / 下一週）── */
   var days    = getWeekDates(anchor);
@@ -298,9 +297,15 @@ function renderWeekView(refDate) {
   };
 
   /* ── 7 欄容器 ── */
+  var isMobileWeek = window.innerWidth < 768;
   var container = document.createElement('div');
   container.className  = 'week-container';
   container.style.width = '100%';
+  /* 手機版週計畫：垂直堆疊（每日一行），支援上下捲動 */
+  if (isMobileWeek) {
+    container.style.flexDirection = 'column';
+    container.style.overflowX     = 'visible';
+  }
   view.appendChild(container);
 
   /* ── 強制清空（需求 §二.1）── */

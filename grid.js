@@ -216,94 +216,40 @@ function _trimTrackToThree(track, view, targetDate) {
 }
 
 /* ══════════════════════════════════════════════════════
-   手機版：單日 translateX 滑動
+   手機版：單日垂直顯示（不用 translateX 橫向軌道）
+   ──────────────────────────────────────────────────────
+   設計原則：
+     - calendar-view 垂直捲動顯示單日 48 格時間軸
+     - 切換日期時：淡出 → 清空 → 插入新日 → 淡入
+     - 不使用橫向 grid-track，避免 overflow:hidden 壓制垂直捲軸
+     - _updateMobileDateLabel 確保頂部日期與內容完全同步
 ══════════════════════════════════════════════════════ */
 
 function _renderMobileSlide(view, targetDate, direction) {
-  var isFirst = !view.querySelector('.grid-track') || view.dataset.mode !== 'mobile';
+  /* 切換動畫：淡出舊內容 */
+  if (direction && view.dataset.mode === 'mobile') {
+    view.style.transition = 'opacity 0.15s ease';
+    view.style.opacity    = '0';
+  }
 
-  if (isFirst || !direction) {
-    _buildMobileTrack(view, targetDate);
-    view.dataset.mode = 'mobile';
+  setTimeout(function() {
+    /* 清空並建立單日內容 */
+    view.innerHTML    = '';
+    view.style.opacity    = '1';
+    view.style.transition = 'opacity 0.2s ease';
+    view.dataset.mode     = 'mobile';
+
+    /* 直接放 day-card，不套 grid-track 橫向軌道 */
+    var card = _buildDayCard(targetDate);
+    card.style.width = '100%';   /* 佔滿寬度 */
+    view.appendChild(card);
+
+    /* 同步頂部日期標籤（需求：日期標籤與格子日期完全一致）*/
     _updateMobileDateLabel(targetDate);
-    setTimeout(function() { initGridScroll(view, targetDate); }, 50);
-    return;
-  }
 
-  var track   = view.querySelector('.grid-track');
-  var slideDir = direction === 'left' ? 1 : -1;
-
-  var newDate = new Date(targetDate);
-  var newPage = _buildDayPage(newDate);
-
-  if (slideDir === 1) {
-    track.appendChild(newPage);
-  } else {
-    track.insertBefore(newPage, track.firstChild);
-  }
-
-  var pages = track.querySelectorAll('.grid-page');
-  track.style.width = (pages.length * 100) + '%';
-
-  if (slideDir === -1) {
-    track.style.transition = 'none';
-    _currentPageIndex++;
-    track.style.transform = 'translateX(-' + (_currentPageIndex * (100/pages.length)).toFixed(4) + '%)';
-    void track.offsetWidth;
-    _currentPageIndex--;
-  } else {
-    _currentPageIndex++;
-  }
-
-  track.style.transition = 'transform 0.4s ease-in-out';
-  track.style.transform  = 'translateX(-' + (_currentPageIndex * (100/pages.length)).toFixed(4) + '%)';
-
-  _updateMobileDateLabel(targetDate);
-
-  track.addEventListener('transitionend', function cleanup() {
-    track.removeEventListener('transitionend', cleanup);
-    _trimMobileTrack(track);
-  }, { once: true });
-}
-
-function _buildMobileTrack(view, targetDate) {
-  view.innerHTML = '';
-  var track = document.createElement('div');
-  track.className = 'grid-track';
-
-  var prev = new Date(targetDate); prev.setDate(targetDate.getDate() - 1);
-  var next = new Date(targetDate); next.setDate(targetDate.getDate() + 1);
-
-  [prev, targetDate, next].forEach(function(d) {
-    track.appendChild(_buildDayPage(d));
-  });
-
-  track.style.width     = '300%';
-  track.style.transform = 'translateX(-' + (100/3).toFixed(4) + '%)';
-  track.style.transition = 'none';
-  view.appendChild(track);
-  _currentPageIndex = 1;
-}
-
-function _buildDayPage(date) {
-  var page = document.createElement('div');
-  page.className   = 'grid-page grid-page--mobile';
-  page.dataset.date = date.toDateString();
-  page.appendChild(_buildDayCard(date));
-  return page;
-}
-
-function _trimMobileTrack(track) {
-  var pages = track.querySelectorAll('.grid-page');
-  if (pages.length <= 3) return;
-  var center = Math.floor(pages.length / 2);
-  var keep   = [pages[center-1], pages[center], pages[center+1]];
-  track.innerHTML = '';
-  keep.forEach(function(p) { track.appendChild(p); });
-  track.style.width     = '300%';
-  track.style.transition = 'none';
-  track.style.transform  = 'translateX(-' + (100/3).toFixed(4) + '%)';
-  _currentPageIndex = 1;
+    /* 垂直捲至當前時間 */
+    _scrollToCurrentTime(view);
+  }, direction ? 120 : 0);
 }
 
 function _updateMobileDateLabel(date) {
