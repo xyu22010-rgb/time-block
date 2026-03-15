@@ -38,18 +38,19 @@
 */
 
 /* ── Firebase 設定 ── */
-const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyD6JT0mKolo8lRVxsQc7fCYgW21kKZIp2A",
-  authDomain:        "time-block-426f8.firebaseapp.com",
-  projectId:         "time-block-426f8",
-  storageBucket:     "time-block-426f8.firebasestorage.app",
+const firebaseConfig = {
+  apiKey: "AIzaSyC0Hd6ETNNScN-S0hYxF91eKzzq18YBJ_U",
+  authDomain: "time-block-426f8.firebaseapp.com",
+  projectId: "time-block-426f8",
+  storageBucket: "time-block-426f8.firebasestorage.app",
   messagingSenderId: "639738397312",
-  appId:             "1:639738397312:web:b19063849262882e46dc65"
+  appId: "1:639738397312:web:4403ab4b326fdee746dc65"
 };
+
 
 /* ── Firebase 初始化（防重複）── */
 if (!firebase.apps.length) {
-  firebase.initializeApp(FIREBASE_CONFIG);
+  firebase.initializeApp(firebaseConfig);
 }
 
 /* ── 對外實例（tasks.js / ui.js 直接使用）── */

@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 250));
 
+  initDatePicker(); // 寶，把這行補在這裡！
   responsive();
 });
 

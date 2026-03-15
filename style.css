@@ -1005,3 +1005,7 @@ body {
   color: inherit;       /* 回歸父元素顏色，無任何特殊樣式 */
   font-weight: inherit;
 }
+/* 隱藏週導航列，讓介面更簡潔 */
+.week-nav {
+    display: none !important;
+}

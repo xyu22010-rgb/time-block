@@ -1,5 +1,5 @@
 /*
-  靈魂時光表 2.0 — tasks.js  v2.0
+  靈魂時光表 2.0 — tasks.js  v2.1
   ═══════════════════════════════════════════════════════
   職責：純資料層。不含任何路徑字串、不含任何 UI 邏輯。
     · 記憶體資料庫 db 的讀寫
@@ -95,16 +95,29 @@ function saveToLocal() {
  */
 async function loadData(uid) {
   try {
-    var snap = await store
+    var docRef = store
       .collection(FIRESTORE_COLLECTION)
-      .doc(uid)
+      .doc(uid)           // 路徑已含 uid，其他用戶無法存取此文件
       .collection('data')
-      .doc(FIRESTORE_DOC)
-      .get();
+      .doc(FIRESTORE_DOC);
+
+    var snap = await docRef.get();
 
     if (snap.exists) {
-      db = Object.assign({ tasks: {}, todos: {}, weeklyTodos: {} }, snap.data());
-      saveToLocal();
+      var data = snap.data();
+
+      // 需求 2：uid 欄位二次驗證
+      // 確保讀到的文件的確屬於當前登入用戶，防止路徑繞過攻擊
+      if (data._uid && data._uid !== uid) {
+        console.error('[tasks] uid 不符，拒絕載入他人資料');
+        loadFromLocal();
+      } else {
+        // 移除內部欄位後存入 db
+        var clean = Object.assign({ tasks: {}, todos: {}, weeklyTodos: {} }, data);
+        delete clean._uid;
+        db = clean;
+        saveToLocal();
+      }
     } else {
       loadFromLocal();
     }
@@ -113,7 +126,6 @@ async function loadData(uid) {
     loadFromLocal();
   }
 
-  // 通知 grid.js 重新渲染
   if (typeof renderTimeGrid === 'function') {
     renderTimeGrid(window._currentRenderDate || new Date());
   }
@@ -134,12 +146,15 @@ async function sync() {
   }
 
   try {
+    // 需求 2：寫入時附加 _uid 欄位，供讀取時二次驗證
+    var payload = Object.assign({}, db, { _uid: user.uid });
+
     await store
       .collection(FIRESTORE_COLLECTION)
-      .doc(user.uid)
+      .doc(user.uid)      // 路徑已含 uid，Firestore Security Rules 可進一步鎖定
       .collection('data')
       .doc(FIRESTORE_DOC)
-      .set(db);
+      .set(payload);
     setSyncStatus('☁️ 雲端已同步');
   } catch (e) {
     console.error('[tasks] Firestore 寫入失敗：', e);
