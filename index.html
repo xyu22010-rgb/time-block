@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0,
+        maximum-scale=1.0, user-scalable=no">
+  <title>時間格</title>
+
+  <link rel="icon" href="/time-block/assets/icon-192-CgrOZJi-.png" type="image/png">
+  <link rel="apple-touch-icon" href="/time-block/assets/icon-192-CgrOZJi-.png">
+
+  <!-- 樣式表 -->
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="時間格">
+  <meta name="theme-color" content="#849FB5">
+  <meta name="format-detection" content="telephone=no">
+  <script type="module" crossorigin src="/time-block/assets/index-BjiA4LxR.js"></script>
+  <link rel="stylesheet" crossorigin href="/time-block/assets/index-DCyMIN3C.css">
+</head>
+<body>
+
+  <!-- 初始化過渡層 -->
+  <div id="loadingOverlay">
+    <div class="loading-card">
+      <h1 class="app-title">時間格</h1>
+      <p class="app-subtitle">2.0</p>
+      <p class="loading-text">正在讀取...</p>
+    </div>
+  </div>
+
+  <!-- 登入覆蓋層 -->
+  <div id="loginOverlay" class="screen-overlay" style="display:none">
+    <div class="login-card">
+      <h1 class="app-title">時間格</h1>
+      <p class="app-subtitle">2.0</p>
+      <p id="authStatusText" class="auth-status">請使用 Google 帳號登入</p>
+      <button id="loginBtn" class="btn btn-primary">
+        <span class="btn-icon">G</span> Google 帳號登入
+      </button>
+    </div>
+  </div>
+
+  <!-- 模式選擇門 -->
+  <div id="modeSelectionScreen" class="screen-overlay" style="display:none">
+    <h2 class="mode-title">選擇你的模式</h2>
+    <div class="mode-selector">
+      <div class="mode-buttons">
+        <button class="mode-btn" data-mode="time">時間格</button>
+        <button class="mode-btn" data-mode="plan">月計畫</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主應用外殼 -->
+  <div id="appUI" style="display:none">
+
+    <!-- 頂部導航列 -->
+    <header class="top-nav">
+      <button id="backBtn" class="btn-back" aria-label="返回模式選擇">❮ 返回</button>
+
+      <!-- 時間格模式：月 + 日 選單 -->
+      <div class="date-picker-group" id="datePicker">
+        <select id="jumpMonth" aria-label="月份"></select>
+        <span class="picker-sep">月</span>
+        <select id="jumpDay" aria-label="日期"></select>
+        <span class="picker-sep">日</span>
+      </div>
+
+      <!-- 月計畫模式：僅月份選單 -->
+      <div class="date-picker-group" id="planDatePicker" style="display:none">
+        <select id="planMonth" aria-label="月計畫月份"></select>
+        <span class="picker-sep">月</span>
+      </div>
+
+      <!-- 手機版：時間格日切換 -->
+      <div class="mobile-day-nav" id="mobileDayNav" style="display:none">
+        <button id="prevDayBtn" class="day-arrow" aria-label="前一天">❮</button>
+        <input type="date" id="mobileDateInput" class="mobile-date-input" aria-label="選擇日期">
+        <button id="nextDayBtn" class="day-arrow" aria-label="後一天">❯</button>
+      </div>
+
+      <!-- 手機版月計畫：月份選單 -->
+      <div class="mobile-day-nav" id="mobilePlanNav" style="display:none">
+        <select id="mobilePlanMonth" class="mobile-plan-month" aria-label="月計畫月份"></select>
+        <span class="picker-sep" style="color:var(--text-muted);font-size:0.82rem">月</span>
+      </div>
+
+      <div class="nav-spacer"></div>
+    </header>
+
+    <!-- 電腦版頂部滾動條 -->
+    <div id="topScrollContainer" class="top-scroll-container">
+      <div id="topScrollInner" class="top-scroll-inner"></div>
+    </div>
+
+    <!-- 時間格主體 -->
+    <main class="calendar-view" id="calendarView"></main>
+
+    <!-- 底部工具列 -->
+    <footer class="bottom-toolbar" id="bottomToolbar">
+      <div class="footer-actions">
+        <button id="wastedBtn"  class="btn btn-tool">⚠️ 檢測浪費時間</button>
+        <button id="summaryBtn" class="btn btn-tool">📖 讀書總結回顧</button>
+        <button id="analyticsBtn" class="btn btn-tool">📊 數據分析中心</button>
+      </div>
+      <div id="syncStatus" class="sync-status">☁️ 雲端已同步</div>
+    </footer>
+
+  </div><!-- /#appUI -->
+
+  <!-- 通用 Modal -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content" id="modalBody"></div>
+  </div>
+
+  <!-- Vite 入口 -->
+
+</body>
+</html>
