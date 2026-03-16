@@ -1,12 +1,12 @@
 /*
-  靈魂時光表 2.0 — ui.js  v3.0
+ 時間格 2.0 — ui.js  v3.0
   ═══════════════════════════════════════════════════════
   本版修正：
-    週計畫：
+    月計畫：
       · 以「月」為單位渲染，每週一個白色卡片（week-card，與 day-card 相同外觀）
       · 標題格式：「第 X 週 (m/dd ~ m/dd)」
       · 月份查詢邏輯修正：_getMonthWeeks(year, month) 正確列出該月所有週
-      · 手機版週計畫選單只保留「月份」下拉，不顯示「日」
+      · 手機版月計畫選單只保留「月份」下拉，不顯示「日」
       · 手機版不允許月日查詢跳轉到時間格
     時間格：
       · 電腦版嚴格顯示7天（週日~週六），grid-page 正確傳入週日起始
@@ -14,6 +14,14 @@
 */
 
 /* ── 全域狀態 ── */
+import { loginWithGoogle, logout } from './auth.js';
+import { renderTimeGrid } from './grid.js'; // 加上這一行！
+import {
+  getTasksForDate, saveTask, markDone, deleteTask,
+  updateFocusTime, saveTodos, getTodosForDate,
+  saveWeeklyGoals, getWeeklyGoals, getDaySummary,
+  getWeekTasks, generateId, calcEndTime
+} from './tasks.js';
 var _wastedMode      = false;
 var _timerHandle     = null;
 var _timerSeconds    = 0;
@@ -48,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
   _on('jumpMonth', 'change', autoUpdateGrid);
   _on('jumpDay',   'change', autoUpdateGrid);
 
-  /* 週計畫專用月份選擇器 */
+  /* 月計畫專用月份選擇器 */
   _on('planMonth', 'change', function() {
     var m = parseInt(document.getElementById('planMonth').value);
     var y = new Date().getFullYear();
@@ -118,7 +126,7 @@ function responsive() {
   var mobileNav = document.getElementById('mobileDayNav');
   if (mobileNav) mobileNav.style.display = (isMobile && !isPlan) ? 'flex' : 'none';
 
-  /* ── 手機版週計畫導航（僅月份選單）── */
+  /* ── 手機版月計畫導航（僅月份選單）── */
   var mobilePlanNav = document.getElementById('mobilePlanNav');
   if (mobilePlanNav) mobilePlanNav.style.display = (isMobile && isPlan) ? 'flex' : 'none';
 
@@ -126,7 +134,7 @@ function responsive() {
   var datePicker = document.getElementById('datePicker');
   if (datePicker) datePicker.style.display = (!isMobile && !isPlan) ? 'flex' : 'none';
 
-  /* ── 電腦版週計畫月份選擇器 ── */
+  /* ── 電腦版月計畫月份選擇器 ── */
   var planPicker = document.getElementById('planDatePicker');
   if (planPicker) planPicker.style.display = (!isMobile && isPlan) ? 'flex' : 'none';
 }
@@ -189,7 +197,7 @@ function initDatePicker() {
 }
 
 function autoUpdateGrid() {
-  /* 只在時間格模式觸發（週計畫有獨立的 planMonth 選單）*/
+  /* 只在時間格模式觸發（月計畫有獨立的 planMonth 選單）*/
   if (_currentMode !== 'time') return;
   var m = parseInt(document.getElementById('jumpMonth').value);
   var dEl = document.getElementById('jumpDay');
@@ -200,7 +208,7 @@ function autoUpdateGrid() {
   renderTimeGrid(target);
 }
 
-/* 週計畫專用月份選擇器（電腦版 planMonth + 手機版 mobilePlanMonth）*/
+/* 月計畫專用月份選擇器（電腦版 planMonth + 手機版 mobilePlanMonth）*/
 function _initPlanMonthPicker() {
   var now   = new Date();
   var curM  = now.getMonth() + 1;
@@ -244,19 +252,19 @@ function _syncMobileDateInput() {
 }
 
 /* ══════════════════════════════════════════════════════
-   週計畫渲染
+   月計畫渲染
    ──────────────────────────────────────────────────────
    問題根因分析（舊版）：
      · renderWeekView 只顯示「一週 7 天」，使用者需要看的是「該月有哪幾週」
      · 月份查詢邏輯 renderWeekView(new Date(y, m-1, 1)) 傳入月份第一天，
        但函式只算該天所在週，不是列出整個月的週次
-     · 手機版週計畫使用了時間格的 jumpDay，造成切換到時間格
+     · 手機版月計畫使用了時間格的 jumpDay，造成切換到時間格
 
    修正架構：
      · renderWeekView(year, month) 列出該月所有週次（4~5個）
      · 每週一個 week-card（白色卡片，與 day-card 外觀一致）
      · 標題：「第 X 週 (m/dd ~ m/dd)」
-     · 週計畫有獨立的 planMonth 選單，與時間格完全隔離
+     · 月計畫有獨立的 planMonth 選單，與時間格完全隔離
 ══════════════════════════════════════════════════════ */
 
 /**
@@ -298,7 +306,7 @@ function renderWeekView(year, month) {
   if (year  === undefined) year  = new Date().getFullYear();
   if (month === undefined) month = new Date().getMonth();
 
-  /* 週計畫模式：電腦版橫向排列，手機版垂直堆疊 */
+  /* 月計畫模式：電腦版橫向排列，手機版垂直堆疊 */
   var _isMobileView = window.innerWidth <= 430;
   view.style.display       = 'flex';
   view.style.overflow      = '';
@@ -378,7 +386,7 @@ function renderWeekView(year, month) {
   }, 80);
 }
 
-/* ── 週計畫輔助函式 ── */
+/* ── 月計畫輔助函式 ── */
 function _makeWeekDayKey(date) {
   var y  = date.getFullYear();
   var w  = _isoWeekNumber(date);

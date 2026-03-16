@@ -1,5 +1,5 @@
 /*
-  靈魂時光表 2.0 — js/grid.js  v3.0
+  時間格 2.0 — js/grid.js  v3.0
   ═══════════════════════════════════════════════════════
   v3.0 修改項目：
 
@@ -29,10 +29,17 @@
   ═══════════════════════════════════════════════════════
 */
 
+import { getTasksForDate } from './tasks.js';
+
 const SLOT_COUNT   = 48;
 const SLOT_MINUTES = 30;
 
 window._currentRenderDate = new Date();
+
+/* tasks.js loadData 完成後觸發，取代全域 renderTimeGrid 呼叫 */
+window.addEventListener('tasks:loaded', function() {
+  renderTimeGrid(window._currentRenderDate || new Date());
+});
 
 /* ══════════════════════════════════════════════════════
    需求 1：translateX 滑動架構
@@ -51,7 +58,7 @@ var _currentWeekSun   = null; // 目前顯示週的週日 Date 物件
  * @param {Date}   targetDate
  * @param {string} [direction] - 'left'（往未來）| 'right'（往過去）| undefined（首次載入）
  */
-function renderTimeGrid(targetDate, direction) {
+export function renderTimeGrid(targetDate, direction) {
   targetDate = targetDate || new Date();
   window._currentRenderDate = targetDate;
 
@@ -174,15 +181,16 @@ function _renderDesktopSlide(view, targetDate, direction) {
  *   3. rAF 後用 view.clientWidth 精確修正（消除捲軸等誤差）
  */
 function _buildDesktopTrack(view, sun) {
-  /* 清除週計畫模式留下的 inline style，恢復 CSS 控制 */
+  /* 清除月計畫模式留下的所有 inline style，恢復 CSS 控制 */
   view.style.display       = '';
   view.style.flexDirection = '';
   view.style.alignItems    = '';
   view.style.padding       = '';
   view.style.gap           = '';
-  view.style.overflowY     = '';
-  view.style.overflow      = '';
-  view.scrollLeft = 0;   /* 防止殘留的 scrollLeft 偏移 */
+  view.style.overflowX     = '';   /* 清除月計畫的 overflowX:auto */
+  view.style.overflowY     = '';   /* 清除月計畫的 overflowY */
+  /* overflow shorthand 不清除，避免覆蓋 CSS 的 overflow-x:hidden */
+  view.scrollLeft = 0;
   view.innerHTML  = '';
 
   /* 預先讀取寬度——此時 view 已在 DOM 中，clientWidth 可靠 */
