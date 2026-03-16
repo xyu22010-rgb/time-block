@@ -2,8 +2,11 @@
   "name": "時間格",
   "short_name": "時間格",
   "description": "時間格 2.0 — 每日 48 格 30 分鐘制時間管理工具",
-  "start_url": "/time-block/index.html",
-  "scope": "/time-block/",
+  
+  
+  "start_url": "index.html",
+  "scope": ".",
+  
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#fdfdfd",
@@ -11,6 +14,7 @@
   "lang": "zh-TW",
   "icons": [
     {
+     
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
