@@ -1,4 +1,4 @@
-console.log('Firebase config:', import.meta.env);
+
 // 現代化寫法：引入 Firebase 的功能模組
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
