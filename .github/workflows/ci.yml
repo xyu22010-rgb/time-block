@@ -1,0 +1,32 @@
+name: Build Check
+
+# 什麼時候要叫醒機器人？
+on:
+  push:
+    branches: [ "main" ] # 當你推送到 main 分支時
+  pull_request:
+    branches: [ "main" ] # 當你發起合併到 main 的請求時
+
+# 機器人要做什麼事？
+jobs:
+  build-test:
+    runs-on: ubuntu-latest # 在 GitHub 提供的虛擬 Linux 電腦上跑
+
+    steps:
+      - name: 複製程式碼
+        uses: actions/checkout@v4 # 讓機器人把你的專案下載到它的虛擬機裡
+
+      - name: 設定 Node.js 環境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # 指定使用 Node.js 20 版本
+          cache: 'npm'       # 快取套件，下次跑會快一點
+
+      - name: 安裝套件
+        run: npm install      # 執行 npm install
+
+      - name: 嘗試打包專案 (Build)
+        # 這裡會用到你剛才在 GitHub 網頁上設定的 Secret 保險箱
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+        run: npm run build    # 執行你剛才在電腦跑成功過的那個指令
