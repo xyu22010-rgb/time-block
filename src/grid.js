@@ -28,9 +28,8 @@
     · 垂直置中邏輯獨立，只移動 scrollTop，不碰水平
   ═══════════════════════════════════════════════════════
 */
-
-import { getTasksForDate } from './tasks.js';
-
+// ✅ 正確的版本：
+import { getTasksForDate, getSlotIndexByTime } from './tasks.js';
 const SLOT_COUNT   = 48;
 const SLOT_MINUTES = 30;
 
@@ -499,7 +498,7 @@ function _scrollToCurrentTime(view) {
 
   var now      = new Date();
   var totalMin = now.getHours() * 60 + now.getMinutes();
-  var slotIdx  = Math.floor(totalMin / SLOT_MINUTES);
+  var slotIdx = getSlotIndexByTime(now);
 
   setTimeout(function() {
     view = view || document.getElementById('calendarView');

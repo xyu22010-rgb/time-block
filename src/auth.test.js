@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { loginWithGoogle } from './auth.js';
+import { loginWithGoogle } from '../auth.js';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 // 1. 模擬 Firebase 模組（讓測試不需要真的連上網路）

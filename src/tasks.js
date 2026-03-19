@@ -47,7 +47,7 @@ export function loadFromLocal() {
   }
 }
 
-function saveToLocal() {
+export function saveToLocal() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(localData));
   } catch (e) {
@@ -137,6 +137,38 @@ export function calcEndTime(startTime, duration) {
   return String(eh).padStart(2, '0') + ':' + String(em).padStart(2, '0');
 }
 
+/* ── 將目前時間轉換為格子索引 (0-47) ── */
+export function getSlotIndexByTime(dateObj) {
+  const hours = dateObj.getHours();
+  const minutes = dateObj.getMinutes();
+  const totalMin = hours * 60 + minutes;
+  // 每 30 分鐘一格 (24小時 * 2 = 48格)
+  return Math.floor(totalMin / 30);
+}
+
+/* ── 核心視覺計算：把時間轉換為像素座標 ── */
+/* ── 核心視覺計算：把時間轉換為像素座標 (含跨夜截斷保險) ── */
+export function calcTaskPosition(startTime, duration, slotHeight = 50) {
+  const parts = startTime.split(':').map(Number);
+  const totalMinutes = parts[0] * 60 + parts[1];
+  const minuteHeight = slotHeight / 30;
+  const dayMaxMinutes = 24 * 60; // 一天總共 1440 分鐘
+
+  const top = totalMinutes * minuteHeight;
+  
+  // 核心修正：如果 (開始分鐘 + 持續分鐘) 超過一天，就只畫到當天 23:59 結束
+  let effectiveDuration = duration;
+  if (totalMinutes + duration > dayMaxMinutes) {
+    effectiveDuration = dayMaxMinutes - totalMinutes;
+  }
+
+  const height = effectiveDuration * minuteHeight;
+  
+  return { 
+    top: Math.round(top * 100) / 100, // 四捨五入到小數兩位
+    height: Math.round(height * 100) / 100 
+  };
+}
 /* ══════════════════════════════════════════════════════
    任務 CRUD
 ══════════════════════════════════════════════════════ */
