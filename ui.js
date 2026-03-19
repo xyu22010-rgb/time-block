@@ -451,15 +451,17 @@ function _saveWeekGoals(dayKey) {
    Modal 系統
 ══════════════════════════════════════════════════════ */
 function openModal(html) {
-  var x = '<button class="modal-close-btn" onclick="closeModal()" aria-label="關閉">✕</button>';
+  var x = '<button class="modal-close-btn" onclick="window.closeModal()" aria-label="關閉">✕</button>';
   document.getElementById('modalBody').innerHTML = x + html;
   document.getElementById('modal').classList.add('open');
 }
 
 function closeModal() {
-  document.getElementById('modal').classList.remove('open');
-  document.getElementById('modalBody').innerHTML = '';
-  _stopTimer();
+  var modal = document.getElementById('modal');
+  if (modal) modal.classList.remove('open');
+  var body = document.getElementById('modalBody');
+  if (body) body.innerHTML = '';
+  if (typeof _stopTimer === 'function') _stopTimer();
 }
 
 function openAddTaskModal(dateStr, defaultTime) {
@@ -479,8 +481,8 @@ function openAddTaskModal(dateStr, defaultTime) {
     '<div class="form-field"><label class="form-label">顏色</label>' +
       '<div class="color-picker-row" id="colorPicker">' + _buildColorDots('') + '</div></div>' +
     '<button class="btn btn-primary" style="width:100%;margin-top:8px" ' +
-            'onclick="_submitAddTask(\'' + dateStr + '\')">儲存行程</button>' +
-    '<button class="btn btn-ghost" onclick="closeModal()">取消</button>'
+            'onclick="window._submitAddTask(\'' + dateStr + '\')">儲存行程</button>' +
+    '<button class="btn btn-ghost" onclick="window.closeModal()">取消</button>'
   );
   _bindEndTimeCalc();
   _bindColorDots();
@@ -511,13 +513,13 @@ function openDetailModal(dateStr, taskId) {
       task.startTime + ' ~ ' + task.endTime + '（' + task.duration + ' 分鐘）</p>' +
     '<div class="timer-display" id="timerDisplay">00:00:00</div>' +
     '<div id="timerBtnArea"><button class="btn btn-primary" style="width:100%" ' +
-      'onclick="_startTimer(\'' + dateStr + '\',\'' + taskId + '\')">開始讀書計時</button></div>' +
+      'onclick="window._startTimer(\'' + dateStr + '\',\'' + taskId + '\')">開始讀書計時</button></div>' +
     '<button class="btn btn-green" style="width:100%" ' +
-      'onclick="_markDoneAndClose(\'' + dateStr + '\',\'' + taskId + '\')">標示已完成</button>' +
+      'onclick="window._markDoneAndClose(\'' + dateStr + '\',\'' + taskId + '\')">標示已完成</button>' +
     '<button class="btn btn-edit" style="width:100%" ' +
-      'onclick="openEditTaskModal(\'' + dateStr + '\',\'' + taskId + '\')">編輯行程</button>' +
+      'onclick="window.openEditTaskModal(\'' + dateStr + '\',\'' + taskId + '\')">編輯行程</button>' +
     '<div style="margin-top:4px"><button class="btn btn-danger" style="width:100%" ' +
-      'onclick="_deleteAndClose(\'' + dateStr + '\',\'' + taskId + '\')">刪除行程</button></div>'
+      'onclick="window._deleteAndClose(\'' + dateStr + '\',\'' + taskId + '\')">刪除行程</button></div>'
   );
   _timerSeconds = task.focusTime || 0;
   _updateTimerDisplay();
@@ -542,8 +544,8 @@ function openEditTaskModal(dateStr, taskId) {
     '<div class="form-field"><label class="form-label">顏色</label>' +
       '<div class="color-picker-row" id="colorPicker">' + _buildColorDots(task.color) + '</div></div>' +
     '<button class="btn btn-primary" style="width:100%;margin-top:8px" ' +
-            'onclick="_submitEditTask(\'' + dateStr + '\',\'' + taskId + '\')">儲存變更</button>' +
-    '<button class="btn btn-ghost" onclick="closeModal()">取消</button>'
+            'onclick="window._submitEditTask(\'' + dateStr + '\',\'' + taskId + '\')">儲存變更</button>' +
+    '<button class="btn btn-ghost" onclick="window.closeModal()">取消</button>'
   );
   _bindEndTimeCalc();
   _bindColorDots();
@@ -571,10 +573,10 @@ function openTodoModal(dateStr) {
     '<p class="modal-title">待辦清單</p>' +
     '<p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px">' + dateStr + '</p>' +
     '<div id="todoList">' + _buildTodoRows(items) + '</div>' +
-    '<div class="todo-add-row"><button class="btn btn-ghost" onclick="_addTodoRow()">＋ 新增待辦</button></div>' +
+    '<div class="todo-add-row"><button class="btn btn-ghost" onclick="window._addTodoRow()">＋ 新增待辦</button></div>' +
     '<button class="btn btn-primary" style="width:100%;margin-top:8px" ' +
-            'onclick="_saveTodos(\'' + dateStr + '\')">儲存</button>' +
-    '<button class="btn btn-ghost" onclick="closeModal()">取消</button>'
+            'onclick="window._saveTodos(\'' + dateStr + '\')">儲存</button>' +
+    '<button class="btn btn-ghost" onclick="window.closeModal()">取消</button>'
   );
 }
 
@@ -623,9 +625,9 @@ function openSummaryModal() {
       _buildMinSelect('sleepMin')           + '<span>分鐘</span>' +
     '</div></div>' +
     '<button class="btn btn-primary" style="width:100%;margin-bottom:8px" ' +
-            'onclick="_calcSummary(\'' + today + '\')">計算總結</button>' +
+            'onclick="window._calcSummary(\'' + today + '\')">計算總結</button>' +
     '<div id="summaryResult"></div>' +
-    '<button class="btn btn-ghost" onclick="closeModal()">關閉</button>'
+    '<button class="btn btn-ghost" onclick="window.closeModal()">關閉</button>'
   );
 }
 
@@ -696,7 +698,7 @@ function openAnalyticsModal() {
     '<p class="modal-title">數據分析中心</p>' +
     '<p style="font-size:0.76rem;color:var(--text-muted);margin-bottom:12px">本週任務概覽</p>' +
     pieHtml + barHtml +
-    '<button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal()">關閉</button>'
+    '<button class="btn btn-ghost" style="margin-top:8px" onclick="window.closeModal()">關閉</button>'
   );
 }
 
@@ -723,15 +725,15 @@ function _startTimer(dateStr, taskId) {
   var area = document.getElementById('timerBtnArea');
   if (area) area.innerHTML =
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
-      '<button class="btn" style="background:var(--bg);color:var(--text-dark)" onclick="_pauseTimer()">暫停</button>' +
-      '<button class="btn btn-danger" onclick="_endTimer(\'' + dateStr + '\',\'' + taskId + '\')">結束</button>' +
+      '<button class="btn" style="background:var(--bg);color:var(--text-dark)" onclick="window._pauseTimer()">暫停</button>' +
+      '<button class="btn btn-danger" onclick="window._endTimer(\'' + dateStr + '\',\'' + taskId + '\')">結束</button>' +
     '</div>';
 }
 
 function _pauseTimer() {
   _timerRunning = false; clearInterval(_timerHandle);
   var area = document.getElementById('timerBtnArea');
-  if (area) area.innerHTML = '<button class="btn btn-primary" style="width:100%" onclick="_resumeTimer()">繼續計時</button>';
+  if (area) area.innerHTML = '<button class="btn btn-primary" style="width:100%" onclick="window._resumeTimer()">繼續計時</button>';
 }
 
 function _resumeTimer() {
@@ -740,8 +742,8 @@ function _resumeTimer() {
   var area = document.getElementById('timerBtnArea');
   if (area) area.innerHTML =
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
-      '<button class="btn" style="background:var(--bg);color:var(--text-dark)" onclick="_pauseTimer()">暫停</button>' +
-      '<button class="btn btn-danger" onclick="_endTimer(\'x\',\'x\')">結束</button>' +
+      '<button class="btn" style="background:var(--bg);color:var(--text-dark)" onclick="window._pauseTimer()">暫停</button>' +
+      '<button class="btn btn-danger" onclick="window._endTimer(\'x\',\'x\')">結束</button>' +
     '</div>';
 }
 
@@ -751,8 +753,8 @@ function _endTimer(dateStr, taskId) {
   var area = document.getElementById('timerBtnArea');
   if (area) area.innerHTML =
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
-      '<button class="btn btn-primary" onclick="_startTimer(\'' + dateStr + '\',\'' + taskId + '\')">開始計時</button>' +
-      '<button class="btn" style="background:var(--bg);color:var(--text-dark)" onclick="_resetTimer(\'' + dateStr + '\',\'' + taskId + '\')">重新設定</button>' +
+      '<button class="btn btn-primary" onclick="window._startTimer(\'' + dateStr + '\',\'' + taskId + '\')">開始計時</button>' +
+      '<button class="btn" style="background:var(--bg);color:var(--text-dark)" onclick="window._resetTimer(\'' + dateStr + '\',\'' + taskId + '\')">重新設定</button>' +
     '</div>';
 }
 
@@ -832,3 +834,25 @@ function _debounce(fn,ms) { var t; return function(){ clearTimeout(t); t=setTime
 if (typeof generateId === 'undefined') {
   function generateId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 }
+
+/* ══════════════════════════════════════════════════════
+   Window 全域掛載
+   Vite ESM 模組內的函式無法被 HTML onclick 直接呼叫，
+   需明確掛載到 window 才能從 HTML 字串的 onclick 存取。
+══════════════════════════════════════════════════════ */
+window.closeModal        = closeModal;
+window.openModal         = openModal;
+window.openAddTaskModal  = openAddTaskModal;
+window.openEditTaskModal = openEditTaskModal;
+window._submitAddTask    = _submitAddTask;
+window._submitEditTask   = _submitEditTask;
+window._markDoneAndClose = _markDoneAndClose;
+window._deleteAndClose   = _deleteAndClose;
+window._startTimer       = _startTimer;
+window._pauseTimer       = _pauseTimer;
+window._resumeTimer      = _resumeTimer;
+window._endTimer         = _endTimer;
+window._resetTimer       = _resetTimer;
+window._addTodoRow       = _addTodoRow;
+window._saveTodos        = _saveTodos;
+window._calcSummary      = _calcSummary;
