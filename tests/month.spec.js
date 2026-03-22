@@ -4,7 +4,7 @@ test.describe('🌙 月計畫模式測試 (Month Plan Mode)', () => {
 
   // 每個測試前都先回到「門口」並進入測試模式
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5173/?test_mode=secret_key_123');
+    await page.goto('/?test_mode=secret_key_123');
     // 確保頁面加載完成，看到模式選擇按鈕
     await expect(page.getByRole('button', { name: '月計畫' })).toBeVisible({ timeout: 15000 });
   });
@@ -45,7 +45,7 @@ test.describe('🌙 月計畫模式測試 (Month Plan Mode)', () => {
 
     // 2. ✨ 跳轉回「時間格」模式
     // 重新載入頁面回到門口是最保險的
-    await page.goto('http://localhost:5173/?test_mode=secret_key_123');
+    await page.goto('/?test_mode=secret_key_123');
     await page.getByRole('button', { name: '時間格' }).click();
 
     // 3. ✨ 打開「時間格」裡的待辦清單

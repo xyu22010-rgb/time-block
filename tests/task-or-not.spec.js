@@ -4,7 +4,7 @@ test.describe('任務管理測試 (Task or Not)', () => {
 
   test.beforeEach(async ({ page }) => {
   // 1. 帶著鑰匙進場
-  await page.goto('http://localhost:5173/?test_mode=secret_key_123');
+  await page.goto('/?test_mode=secret_key_123');
   
   // 2. ✨ 重要：等待網頁完全載入（Vite 渲染需要時間）
   // 我們等那個「正在讀取...」的 loadingOverlay 消失
@@ -247,7 +247,7 @@ test.describe('任務管理測試 (Task or Not)', () => {
     });
 
     // 2. ✨ 進入頁面並確保網址完全正確
-    await page.goto('http://localhost:5173/?test_mode=secret_key_123');
+    await page.goto('/?test_mode=secret_key_123');
     await page.getByRole('button', { name: '時間格' }).click();
     await expect(page.locator('#appUI')).toBeVisible({ timeout: 15000 });
 
@@ -288,7 +288,7 @@ test.describe('任務管理測試 (Task or Not)', () => {
 
 
  test('🎨 顏色美學驗證：自定義莫蘭迪色與標記已讀完的綠色', async ({ page }) => {
-    await page.goto('http://localhost:5173/?test_mode=secret_key_123');
+    await page.goto('/?test_mode=secret_key_123');
     await page.getByRole('button', { name: '時間格' }).click();
 
     // 1. ✨ 新增行程
@@ -375,7 +375,7 @@ test('📅 週期行程：完整流程（新增 → 設定循環 → 驗證分�
   // ══════════════════════════════════════════════════════
   // 1. 進入頁面並等待 App 初始化完成
   // ══════════════════════════════════════════════════════
-  await page.goto('http://localhost:5173/?test_mode=secret_key_123');
+  await page.goto('/?test_mode=secret_key_123');
 
   // 等待「模式選擇門」出現（代表 auth + tasks 載入完成）
   await expect(page.locator('#modeSelectionScreen')).toBeVisible({ timeout: 10000 });

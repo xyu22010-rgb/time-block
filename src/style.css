@@ -1522,3 +1522,132 @@ body {
 .day-circle:hover:not(.active) {
     background: #e8e8e8;
 }
+
+/* 導覽彈窗本體：#fdfdfd 背景 + backdrop-filter */
+.custom-tooltip {
+  background-color: rgba(253, 253, 253, 0.9) !important;
+  backdrop-filter: blur(10px) !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(132, 159, 181, 0.3) !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1) !important;
+  padding: 15px !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   模式選擇頁 — 版面修正
+══════════════════════════════════════════════════════ */
+
+/* modeSelectionScreen 改為可捲動（內容多時不截斷）*/
+#modeSelectionScreen {
+  justify-content: flex-start;
+  padding-top: 60px;
+  overflow-y: auto;
+}
+
+/* 內容容器：置中、限制寬度 */
+.mode-selection-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+  box-sizing: border-box;
+}
+
+/* ── 新手導覽按鈕 ── */
+.btn-tour {
+  margin-top: 16px;
+  background: transparent;
+  border: 1.5px solid rgba(132, 159, 181, 0.5);
+  border-radius: 20px;
+  color: #849FB5;
+  font-size: 0.85rem;
+  padding: 7px 22px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  max-width: 240px;
+}
+.btn-tour:hover {
+  background: rgba(132, 159, 181, 0.1);
+  border-color: #849FB5;
+}
+
+/* ── Q&A 按鈕 ── */
+.btn-qa {
+  margin-top: 10px;
+  background: transparent;
+  border: 1.5px solid rgba(180, 180, 180, 0.4);
+  border-radius: 20px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  padding: 7px 22px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  max-width: 240px;
+}
+.btn-qa:hover {
+  background: rgba(0,0,0,0.04);
+  border-color: #bbb;
+}
+
+/* ══════════════════════════════════════════════════════
+   Intro.js 客製化
+   z-index 規劃：
+     modal = 3000
+     introjs-overlay = 9000
+     introjs-helperLayer = 9001
+     introjs-tooltipReferenceLayer = 9002
+     introjs-tooltip = 9003
+══════════════════════════════════════════════════════ */
+.introjs-overlay {
+  background: rgba(50, 65, 80, 0.5) !important;
+  z-index: 9000 !important;
+}
+.introjs-helperLayer {
+  z-index: 9001 !important;
+  pointer-events: auto;
+  box-shadow: 0 0 0 3px rgba(132,159,181,0.55),
+              0 0 0 9999px rgba(50,65,80,0.5) !important;
+  border-radius: 8px !important;
+}
+.introjs-tooltipReferenceLayer {
+  z-index: 9002 !important;
+}
+.introjs-tooltip {
+  z-index: 9003 !important;
+  pointer-events: auto !important;
+  background: rgba(253,253,253,0.97) !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(132,159,181,0.2) !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.1) !important;
+  padding: 16px 18px !important;
+  min-width: 260px !important;
+  max-width: 340px !important;
+}
+.introjs-arrow.bottom { border-top-color:    rgba(253,253,253,0.97) !important; }
+.introjs-arrow.top    { border-bottom-color: rgba(253,253,253,0.97) !important; }
+.introjs-arrow.left   { border-right-color:  rgba(253,253,253,0.97) !important; }
+.introjs-arrow.right  { border-left-color:   rgba(253,253,253,0.97) !important; }
+.introjs-button {
+  background-color: #849FB5 !important;
+  color: white !important;
+  text-shadow: none !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  padding: 7px 14px !important;
+  font-size: 0.83rem !important;
+}
+.introjs-button:hover   { background-color: #6d8a9e !important; }
+/* 隱藏跳過按鈕（skipLabel 設為空字串，但有些版本仍渲染容器） */
+.introjs-skipbutton     { display: none !important; }
+.introjs-progressbar    { background-color: #849FB5 !important; }
+.introjs-helperNumberLayer {
+  background: #849FB5 !important;
+  border: none !important;
+  color: white !important;
+}

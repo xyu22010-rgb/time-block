@@ -46,12 +46,23 @@
 
   <!-- 模式選擇門 -->
   <div id="modeSelectionScreen" class="screen-overlay" style="display:none">
-    <h2 class="mode-title">選擇你的模式</h2>
-    <div class="mode-selector">
-      <div class="mode-buttons">
-        <button class="mode-btn" data-mode="time">時間格</button>
-        <button class="mode-btn" data-mode="plan">月計畫</button>
+    <div class="mode-selection-inner">
+
+      <h2 class="mode-title">選擇你的模式</h2>
+
+      <div class="mode-selector">
+        <div class="mode-buttons" id="modeBtnsGroup">
+          <button class="mode-btn" data-mode="time">時間格</button>
+          <button class="mode-btn" data-mode="plan">月計畫</button>
+        </div>
       </div>
+
+      <!-- 新手導覽按鈕（唯一一個） -->
+      <button class="btn-tour" onclick="window.startUserGuide()">新手導覽</button>
+
+      <!-- Q&A（單一入口按鈕，點開後顯示 Modal） -->
+      <button class="btn-qa" onclick="window.openQAModal()">Q &amp; A(他有點壞先不要按)</button>
+
     </div>
   </div>
 

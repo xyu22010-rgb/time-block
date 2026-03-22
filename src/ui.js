@@ -14,6 +14,8 @@
 */
 
 /* ── 全域狀態 ── */
+import introJs from 'intro.js';
+import 'intro.js/introjs.css';
 import { loginWithGoogle, logout } from './auth.js';
 import { renderTimeGrid } from './grid.js'; // 加上這一行！
 import {
@@ -502,7 +504,6 @@ function openAddTaskModal(dateStr, defaultTime) {
       
       '<button class="btn btn-primary" style="width:100%; margin-top:25px;" ' +
               'onclick="window._submitAddTask(\'' + dateStr + '\')">儲存行程</button>' +
-      '<p style="text-align:center; margin-top:15px; color:#888; cursor:pointer;" onclick="window.closeModal()">取消</p>' +
 
       // ═════ 二級視窗 (循環週期設定) ═════
       '<div id="cycleLayer" class="cycle-layer-mask">' +
@@ -580,6 +581,7 @@ function openAddTaskModal(dateStr, defaultTime) {
 
     _bindEndTimeCalc();
     _bindColorDots();
+
   }, 50);
 } // ⬅️ 這是 openEditTaskModal 的最後一個門
 
@@ -602,12 +604,14 @@ function openDetailModal(dateStr, taskId) {
     '<div class="timer-display" id="timerDisplay">00:00:00</div>' +
     '<div id="timerBtnArea"><button class="btn btn-primary" style="width:100%" ' +
       'onclick="window._startTimer(\'' + dateStr + '\',\'' + taskId + '\')">開始讀書計時</button></div>' +
+    '<div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">' +
     '<button class="btn btn-green" style="width:100%" ' +
       'onclick="window._markDoneAndClose(\'' + dateStr + '\',\'' + taskId + '\')">標示已完成</button>' +
     '<button class="btn btn-edit" style="width:100%" ' +
       'onclick="window.openEditTaskModal(\'' + editDateStr + '\',\'' + editTaskId + '\')">編輯行程</button>' +
-    '<div style="margin-top:4px"><button class="btn btn-danger" style="width:100%" ' +
-      'onclick="window._deleteAndClose(\'' + editDateStr + '\',\'' + editTaskId + '\')">刪除行程</button></div>'
+    '<button class="btn btn-danger" style="width:100%" ' +
+      'onclick="window._deleteAndClose(\'' + editDateStr + '\',\'' + editTaskId + '\')">刪除行程</button>' +
+    '</div>'
   );
   _timerSeconds = task.focusTime || 0;
   _updateTimerDisplay();
@@ -642,7 +646,6 @@ function openEditTaskModal(dateStr, taskId) {
         '<span id="add_cycleText" style="color:#849FB5; font-size: 0.9rem;">' + (task.cycle ? '已設定 ❯' : '不重複 ❯') + '</span>' +
       '</div>' +
       '<button class="btn btn-primary" style="width:100%; margin-top:25px;" onclick="window._submitEditTask(\'' + dateStr + '\',\'' + taskId + '\')">儲存變更</button>' +
-      '<p style="text-align:center; margin-top:15px; color:#888; cursor:pointer;" onclick="window.closeModal()">取消</p>' +
       '<div id="cycleLayer" class="cycle-layer-mask">' +
         '<div class="layer-header" style="padding:15px; display:flex; align-items:center; border-bottom:1px solid #eee;">' +
           '<button type="button" id="closeCycleLayerBtn" style="background:none; border:none; font-size:24px; color:#849FB5; cursor:pointer; font-weight:bold; padding:0 10px;"> < </button>' +
@@ -725,8 +728,7 @@ function openTodoModal(dateStr) {
     '<div id="todoList">' + _buildTodoRows(items) + '</div>' +
     '<div class="todo-add-row"><button class="btn btn-ghost" onclick="window._addTodoRow()">＋ 新增待辦</button></div>' +
     '<button class="btn btn-primary" style="width:100%;margin-top:8px" ' +
-            'onclick="window._saveTodos(\'' + dateStr + '\')">儲存</button>' +
-    '<button class="btn btn-ghost" onclick="window.closeModal()">取消</button>'
+            'onclick="window._saveTodos(\'' + dateStr + '\')">儲存</button>'
   );
 }
 
@@ -776,8 +778,7 @@ function openSummaryModal() {
     '</div></div>' +
     '<button class="btn btn-primary" style="width:100%;margin-bottom:8px" ' +
             'onclick="window._calcSummary(\'' + today + '\')">計算總結</button>' +
-    '<div id="summaryResult"></div>' +
-    '<button class="btn btn-ghost" onclick="window.closeModal()">關閉</button>'
+    '<div id="summaryResult"></div>' 
   );
 }
 
@@ -847,8 +848,7 @@ function openAnalyticsModal() {
   openModal(
     '<p class="modal-title">數據分析中心</p>' +
     '<p style="font-size:0.76rem;color:var(--text-muted);margin-bottom:12px">本週任務概覽</p>' +
-    pieHtml + barHtml +
-    '<button class="btn btn-ghost" style="margin-top:8px" onclick="window.closeModal()">關閉</button>'
+    pieHtml + barHtml 
   );
 }
 
@@ -1059,11 +1059,289 @@ function _submitEditTask(dateStr, taskId) {
   _restoreScroll();
 }
 
-/* ══════════════════════════════════════════════════════
-   Window 全域掛載
-   Vite ESM 模組內的函式無法被 HTML onclick 直接呼叫，
-   需明確掛載到 window 才能從 HTML 字串的 onclick 存取。
-══════════════════════════════════════════════════════ */
+// 確保 ui.js 最上方有這行： import introJs from 'intro.js';
+
+/* ── Q&A Modal ── */
+function openQAModal() {
+  openModal(
+    '<p class="modal-title">Q & A</p>' +
+    '<div style="text-align:left">' +
+      '<details style="margin-bottom:12px;background:#f9f9f9;border-radius:10px;padding:12px 14px">' +
+        '<summary style="font-size:0.9rem;color:var(--text-dark);cursor:pointer;font-weight:500;list-style:none;display:flex;justify-content:space-between;align-items:center">' +
+          '如何把時間格加到手機桌面？<span style="color:#849FB5">＋</span>' +
+        '</summary>' +
+        '<div style="margin-top:8px;font-size:0.84rem;color:var(--text-muted);line-height:1.6">' +
+          '說明文字預留位置——之後補上圖文教學 ✍️' +
+        '</div>' +
+      '</details>' +
+      '<details style="background:#f9f9f9;border-radius:10px;padding:12px 14px">' +
+        '<summary style="font-size:0.9rem;color:var(--text-dark);cursor:pointer;font-weight:500;list-style:none;display:flex;justify-content:space-between;align-items:center">' +
+          '有問題怎麼聯絡你？<span style="color:#849FB5">＋</span>' +
+        '</summary>' +
+        '<div style="margin-top:8px;font-size:0.84rem;color:var(--text-muted);line-height:1.6">' +
+          'Email 預留位置——之後補上聯絡方式 ✉️' +
+        '</div>' +
+      '</details>' +
+    '</div>'
+  );
+}
+
+/* ── 新手導覽（14 步完整版）── */
+function startUserGuide() {
+  if (typeof introJs === 'undefined') {
+    alert('導覽元件尚未載入，請重新整理頁面後再試。');
+    return;
+  }
+  if (window._tourInstance) {
+    try { window._tourInstance.exit(true); } catch(e) {}
+    window._tourInstance = null;
+  }
+
+  /* 輔助：讓遮罩可穿透 */
+  function enableClickThrough() {
+    document.querySelectorAll('.introjs-overlay,.introjs-helperLayer').forEach(function(el) {
+      el.style.pointerEvents = 'none';
+    });
+    document.querySelectorAll('.introjs-tooltip,.introjs-tooltipReferenceLayer').forEach(function(el) {
+      el.style.pointerEvents = 'auto';
+    });
+  }
+  function disableClickThrough() {
+    document.querySelectorAll('.introjs-overlay,.introjs-helperLayer').forEach(function(el) {
+      el.style.pointerEvents = '';
+    });
+  }
+  function hideNextBtn() {
+    var b = document.querySelector('.introjs-nextbutton');
+    if (b) b.style.display = 'none';
+  }
+  function showNextBtn() {
+    var b = document.querySelector('.introjs-nextbutton');
+    if (b) b.style.display = '';
+  }
+  function waitForEl(sel) {
+    return new Promise(function(resolve) {
+      var t = Date.now();
+      (function check() {
+        var el = document.querySelector(sel);
+        if (el) return resolve(el);
+        if (Date.now() - t > 5000) return resolve(null);
+        requestAnimationFrame(check);
+      })();
+    });
+  }
+  function onceClick(sel, cb) {
+    function h(e) {
+      var el = e.target.closest(sel);
+      if (!el) return;
+      document.removeEventListener('click', h, true);
+      cb(el);
+    }
+    document.addEventListener('click', h, true);
+    return function() { document.removeEventListener('click', h, true); };
+  }
+
+  /* introJs.tour() — 使用新版 API */
+  var intro = introJs.tour();
+  window._tourInstance = intro;
+  var _cleanup = null;
+  var _pendingStep = -1; /* 追蹤「真正要去的步驟」*/
+
+  intro.setOptions({
+    nextLabel:    '下一步 →',
+    prevLabel:    '← 上一步',
+    doneLabel:    '🎉 完成！',
+    skipLabel:    '✕',          /* 叉叉 */
+    showBullets:  false,
+    showProgress: true,
+    exitOnEsc:    true,
+    exitOnOverlayClick: false,
+    disableInteraction: false,
+    steps: [
+      /* 0 歡迎 */
+      { intro: '<h3 style="color:#849FB5;margin:0 0 8px">👋 歡迎使用時間格！</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">我們一起來學習怎麼使用這個工具吧！大約需要 2 分鐘。(這個功能目前不完善，但我真的得讀地理所以...建議先不要用...要離開的話刷新就好喔!</p>' },
+      /* 1 介紹模式按鈕 */
+      { element: '#modeBtnsGroup',
+        intro: '<h3 style="color:#849FB5;margin:0 0 8px">🗂️ 選擇模式</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">這裡可以選擇你要使用<b>時間格</b>或是<b>月計畫</b>喔！</p>',
+        position: 'bottom' },
+      /* 2 等點「時間格」按鈕，enableClickThrough */
+      { element: '[data-mode="time"]',
+        intro: '<h3 style="color:#849FB5;margin:0 0 8px">⏱️ 先來學時間格！</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">我們先來學怎麼使用時間格吧！<br><b>請按下「時間格」按鈕</b>繼續。</p>',
+        position: 'bottom' },
+      /* 3 時間格頁面，等點灰格 */
+      { element: '#calendarView',
+        intro: '<h3 style="color:#849FB5;margin:0 0 8px">📅 這裡是時間格！</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">每個灰色小格子代表 30 分鐘。<br><b>現在請按下任意一個灰色格子！</b></p>',
+        position: 'top' },
+      /* 4 等點循環週期 */
+      { element: '#openCycleLayerBtn',
+        intro: '<h3 style="color:#849FB5;margin:0 0 8px">🎉 超棒！</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">你現在在<b>新增行程</b>的頁面了！前幾個欄位都蠻直覺的 OuOb<br><b>請按按看這個「循環週期」！</b></p>',
+        position: 'top' },
+      /* 5 循環週期說明 */
+      { element: '#cycleLayer',
+        intro: '<h3 style="color:#849FB5;margin:0 0 8px">🔄 循環週期</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">有些行程每週甚至每天都有，不想一直重複新增嗎？<b>循環週期就是你的好幫手！</b>（應該看得懂怎麼用齁 OuOB）</p>',
+        position: 'bottom' },
+      /* 6 新增行程說明完畢 */
+      { element: '#modalBody',
+        intro: '<h3 style="color:#849FB5;margin:0 0 8px">📝 新增行程大功告成！</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">好了這就是新增行程的頁面了！<br>按下一步讓系統幫你建立一個示範任務～</p>',
+        position: 'top' },
+      /* 7 等點示範任務 */
+      { element: '#calendarView',
+        intro: '<h3 style="color:#849FB5;margin:0 0 8px">✏️ 來學編輯行程！</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">系統幫你建了一個「示範任務」。<br><b>請按下那個任務方塊！</b></p>',
+        position: 'top' },
+      /* 8 行程詳情說明 */
+      { element: '#modalBody',
+        intro: '<h3 style="color:#849FB5;margin:0 0 8px">📋 行程詳情</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">這裡可以：<br>⏱️ <b>計時</b>讀書時間<br>✅ <b>標記已完成</b>讓任務變綠<br>✏️ 點<b>編輯行程</b>更改詳情<br><br>接下來介紹底部功能！</p>',
+        position: 'top' },
+      /* 9 浪費時間 */
+      { element: '#wastedBtn',
+        intro: '<h3 style="color:#849FB5;margin:0 0 8px">⚠️ 檢測浪費時間</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">點下後會把<b>沒安排行程</b>的時間格染色，快速看出哪些時間還可以利用！</p>',
+        position: 'top' },
+      /* 10 讀書總結 */
+      { element: '#summaryBtn',
+        intro: '<h3 style="color:#849FB5;margin:0 0 8px">📖 讀書總結回顧</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">顯示：✅ 完成任務數、⏰ 讀書時間、😴 總浪費時間（24hr - 睡覺 - 空白格）</p>',
+        position: 'top' },
+      /* 11 數據分析 */
+      { element: '#analyticsBtn',
+        intro: '<h3 style="color:#849FB5;margin:0 0 8px">📊 數據分析中心</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">結算<b>一週內</b>各任務花了多少時間，用圖表呈現！</p>',
+        position: 'top' },
+      /* 12 Todo */
+      { element: '.todo-add-btn',
+        intro: '<h3 style="color:#849FB5;margin:0 0 8px">✅ To-do List</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">日期旁邊的 <b>＋</b> 是 To-do list！大家應該都會用我就不多說了 OuO<br>月計畫功能也差不多，容我偷懶一下！</p>',
+        position: 'left' },
+      /* 13 結語 */
+      { intro: '<h3 style="color:#849FB5;margin:0 0 8px">🎊 恭喜學完了！</h3><p style="color:#555;font-size:0.88rem;line-height:1.6;margin:0">大約(?)把全部功能都學會了！<br><br>目前我還在學習讓程式變更好，可能偶爾不穩定，謝謝你們的包含 💙<br><br>有任何問題可以到 Q&A 問我！<br><b>祝你使用順利！！</b></p>' }
+    ]
+  });
+
+  /* ══════════════════════════════════════════════════════
+     關鍵修正：用 onbeforechange 取代 onchange
+     onbeforechange 的第一個參數 targetEl 是「即將顯示」的步驟元素
+     用 intro._introItems 取得步驟索引才是正確的新步驟
+  ══════════════════════════════════════════════════════ */
+  intro.onbeforechange(function(targetEl) {
+    /* 取得「即將進入」的步驟索引 */
+    var step = intro._currentStep;
+    _pendingStep = step;
+
+    if (_cleanup) { _cleanup(); _cleanup = null; }
+    disableClickThrough();
+    showNextBtn();
+
+    /* ── 步驟2：等用戶點「時間格」按鈕 ── */
+    if (step === 2) {
+      hideNextBtn();
+      enableClickThrough();
+      _cleanup = onceClick('[data-mode="time"]', function() {
+        /* 先切換頁面 */
+        enterMode('time');
+        /* 等時間格的 .slot 真正出現在 DOM，再推進 */
+        waitForEl('.slot').then(function() {
+          setTimeout(function() {
+            disableClickThrough();
+            showNextBtn();
+            intro.nextStep();
+          }, 600);
+        });
+      });
+      /* 阻止 introJs 自己跑下一步（讓用戶自己點按鈕） */
+      return false;
+    }
+
+    /* ── 步驟3：等用戶點灰格 ── */
+    if (step === 3) {
+      /* 確認現在在時間格頁面 */
+      if (typeof window._currentMode !== 'undefined' && window._currentMode !== 'time') {
+        enterMode('time');
+      }
+      hideNextBtn();
+      enableClickThrough();
+      var modal3 = document.getElementById('modal');
+      var obs3 = new MutationObserver(function() {
+        if (modal3 && modal3.classList.contains('open')) {
+          obs3.disconnect();
+          if (_cleanup) { _cleanup(); _cleanup = null; }
+          disableClickThrough();
+          setTimeout(function() { intro.nextStep(); }, 400);
+        }
+      });
+      if (modal3) obs3.observe(modal3, { attributes: true, attributeFilter: ['class'] });
+      _cleanup = function() { obs3.disconnect(); };
+      return false;
+    }
+
+    /* ── 步驟4：等用戶點循環週期 ── */
+    if (step === 4) {
+      hideNextBtn();
+      enableClickThrough();
+      _cleanup = onceClick('#openCycleLayerBtn', function() {
+        disableClickThrough();
+        setTimeout(function() { intro.nextStep(); }, 400);
+      });
+      return false;
+    }
+
+    /* ── 步驟7：關 Modal，建示範任務 ── */
+    if (step === 7) {
+      var modal7 = document.getElementById('modal');
+      if (modal7 && modal7.classList.contains('open')) closeModal();
+      var today = new Date().toDateString();
+      saveTask(today, {
+        name: '🎯 示範任務（可刪除）',
+        startTime: '09:00',
+        duration: 60,
+        color: '#849FB5',
+        note: '這是導覽自動建立的示範任務',
+        done: false,
+        cycle: null
+      });
+      setTimeout(function() {
+        renderTimeGrid(window._currentRenderDate || new Date());
+      }, 200);
+    }
+  });
+
+  /* onafterchange：步驟7後等用戶點示範任務，步驟9後關 Modal */
+  intro.onafterchange(function() {
+    var step = intro._currentStep;
+
+    if (step === 7) {
+      hideNextBtn();
+      enableClickThrough();
+      var modal7b = document.getElementById('modal');
+      var obs7 = new MutationObserver(function() {
+        if (modal7b && modal7b.classList.contains('open')) {
+          obs7.disconnect();
+          if (_cleanup) { _cleanup(); _cleanup = null; }
+          disableClickThrough();
+          setTimeout(function() { intro.nextStep(); }, 400);
+        }
+      });
+      if (modal7b) obs7.observe(modal7b, { attributes: true, attributeFilter: ['class'] });
+      _cleanup = function() { obs7.disconnect(); };
+    }
+
+    if (step === 9) {
+      var modal9 = document.getElementById('modal');
+      if (modal9 && modal9.classList.contains('open')) closeModal();
+    }
+
+    if (step === 12) {
+      var btn = document.querySelector('.todo-add-btn');
+      if (btn) {
+        btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(function() { intro.refresh(); }, 400);
+      }
+    }
+  });
+
+  intro.onexit(function() {
+    if (_cleanup) { _cleanup(); _cleanup = null; }
+    disableClickThrough();
+    window._tourInstance = null;
+  });
+
+  intro.start();
+}
 window.closeModal        = closeModal;
 window.openModal         = openModal;
 window.openAddTaskModal  = openAddTaskModal;
@@ -1080,3 +1358,13 @@ window._resetTimer       = _resetTimer;
 window._addTodoRow       = _addTodoRow;
 window._saveTodos        = _saveTodos;
 window._calcSummary      = _calcSummary;
+window.startUserGuide = startUserGuide;
+window.openQAModal      = openQAModal;
+window.enterMode = enterMode;
+window.showModeSelection = showModeSelection;
+
+// 在 ui.js 檔案最後面
+// 確保 App 一啟動就執行一次，這樣第一次進入就會有導覽按鈕
+document.addEventListener('DOMContentLoaded', () => {
+    showModeSelection(); 
+});

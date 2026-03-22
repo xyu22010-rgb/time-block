@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('🤖 機器人驗證：電腦版水平置中測試', async ({ page }) => {
-  await page.goto('http://localhost:5173/?test_mode=secret_key_123'); 
+  await page.goto('/?test_mode=secret_key_123'); 
   await page.setViewportSize({ width: 1280, height: 800 });
 
   // 1. 點擊進入

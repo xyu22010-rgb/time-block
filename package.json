@@ -24,6 +24,7 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
-    "firebase": "^12.10.0"
+    "firebase": "^12.10.0",
+    "intro.js": "^8.3.2"
   }
 }

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('📋 每日待辦清單測試 (To-do List)', () => {
     test.beforeEach(async ({ page }) => {
     // 1. ✨ 進入測試網址
-    await page.goto('http://localhost:5173/?test_mode=secret_key_123'); 
+    await page.goto('/?test_mode=secret_key_123'); 
     
     // 2. ✨ 在「模式選擇門」點擊「時間格」
     // 既然妳說它叫 getByRole('button', { name: '時間格' })
