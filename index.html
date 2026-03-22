@@ -6,21 +6,21 @@
         maximum-scale=1.0, user-scalable=no">
   <title>時間格</title>
 
-  <link rel="icon" href="/time-block/assets/icon-192-CgrOZJi-.png" type="image/png">
-  <link rel="apple-touch-icon" href="/time-block/assets/icon-192-CgrOZJi-.png">
+ <link rel="icon" href="/time-block/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/time-block/icon-192.png">
 
-  <!-- 樣式表 -->
+  <!-- 樣式表 -->
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="/time-block/assets/manifest-jEhP8NPO.json">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="時間格">
   <meta name="theme-color" content="#849FB5">
   <meta name="format-detection" content="telephone=no">
-  <script type="module" crossorigin src="/time-block/assets/index-BjiA4LxR.js"></script>
-  <link rel="stylesheet" crossorigin href="/time-block/assets/index-DCyMIN3C.css">
+  <script type="module" crossorigin src="/time-block/assets/index-C-wLmalz.js"></script>
+  <link rel="stylesheet" crossorigin href="/time-block/assets/index-BvRV9kD4.css">
 </head>
 <body>
 
@@ -47,12 +47,23 @@
 
   <!-- 模式選擇門 -->
   <div id="modeSelectionScreen" class="screen-overlay" style="display:none">
-    <h2 class="mode-title">選擇你的模式</h2>
-    <div class="mode-selector">
-      <div class="mode-buttons">
-        <button class="mode-btn" data-mode="time">時間格</button>
-        <button class="mode-btn" data-mode="plan">月計畫</button>
+    <div class="mode-selection-inner">
+
+      <h2 class="mode-title">選擇你的模式</h2>
+
+      <div class="mode-selector">
+        <div class="mode-buttons" id="modeBtnsGroup">
+          <button class="mode-btn" data-mode="time">時間格</button>
+          <button class="mode-btn" data-mode="plan">月計畫</button>
+        </div>
       </div>
+
+      <!-- 新手導覽按鈕（唯一一個） -->
+      <button class="btn-tour" onclick="window.startUserGuide()">新手導覽</button>
+
+      <!-- Q&A（單一入口按鈕，點開後顯示 Modal） -->
+      <button class="btn-qa" onclick="window.openQAModal()">Q &amp; A(他有點壞先不要按)</button>
+
     </div>
   </div>
 
@@ -118,7 +129,7 @@
     <div class="modal-content" id="modalBody"></div>
   </div>
 
-  <!-- Vite 入口 -->
+  <!-- Vite 入口 -->
 
 </body>
 </html>
