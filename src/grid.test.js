@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 // 我們從 tasks.js 引入計算邏輯來測試
-import { getSlotIndexByTime,calcTaskPosition } from '../tasks.js';
+import { getSlotIndexByTime,calcTaskPosition } from './tasks.js';
 
 describe('【視覺定位】grid.js 核心邏輯測試', () => {
 

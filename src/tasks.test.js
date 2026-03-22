@@ -1,4 +1,4 @@
-import { getDaySummary, localData, calcEndTime,saveToLocal,loadFromLocal,saveTodos,getTodosForDate,saveTask,deleteTask} from '../tasks.js'; 
+import { getDaySummary, localData, calcEndTime,saveToLocal,loadFromLocal,saveTodos,getTodosForDate,saveTask,deleteTask} from './tasks.js'; 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 /* ══════════════════════════════════════════════════════

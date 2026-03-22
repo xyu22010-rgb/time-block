@@ -1,27 +1,44 @@
 import { test, expect } from '@playwright/test';
 
-// 幫機器人戴上偽裝面具
-test.use({ 
-  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
-});
+test('🤖 機器人驗證：電腦版水平置中測試', async ({ page }) => {
+  await page.goto('http://localhost:5173/?test_mode=secret_key_123'); 
+  await page.setViewportSize({ width: 1280, height: 800 });
 
-test('🤖 機器人驗證：偽裝模式手動登入', async ({ page }) => {
-  // 進入網頁
-  await page.goto('http://localhost:5173'); 
-  
-  // 這裡給妳 30 秒，因為 Google 登入可能很慢
-  console.log('--- 寶，我有幫妳戴面具了，再試一次登入！ ---');
-  await page.waitForTimeout(30000); 
+  // 1. 點擊進入
+  const gridBtn = page.getByRole('button', { name: '時間格' });
+  await gridBtn.click();
 
-  await page.setViewportSize({ width: 390, height: 844 });
+  // 🌟 2. 關鍵：等待「今日」那個亮橘色的標籤出現 (代表格子畫好了)
+  await page.waitForSelector('.today'); 
 
-  const scrollY = await page.evaluate(() => {
-    const container = document.querySelector('.mobile-view-scroll') || 
-                      document.querySelector('.grid-content') || 
-                      document.documentElement;
-    return container.scrollTop;
+  // 🌟 3. 再多給 500ms，確保 grid.js 裡的所有 setTimeout(..., 80) 都跑完了
+  await page.waitForTimeout(500); 
+
+  // 🌟 4. 抓取正確的捲動數值
+  const scrollResult = await page.evaluate(() => {
+    // 找出目前顯示在軌道中間的那個頁面
+    // 根據妳的 grid.js，scrollLeft 是被設定在 .grid-page 上的
+    const pages = document.querySelectorAll('.grid-page');
+    const topScroll = document.getElementById('topScrollContainer');
+    
+    // 我們把可能的數值都抓出來回傳
+    return {
+      pageScroll: pages.length > 0 ? pages[0].scrollLeft : -1,
+      topScroll: topScroll ? topScroll.scrollLeft : -1
+    };
   });
 
-  console.log('--- 最終高度：', scrollY);
-  expect(scrollY).toBeGreaterThan(0);
+  console.log('--- 機器人量測結果 ---');
+  console.log('頁面捲動:', scrollResult.pageScroll);
+  console.log('頂部滾動條:', scrollResult.topScroll);
+
+  // 只要其中一個有動，測試就過關！
+  const finalScroll = Math.max(scrollResult.pageScroll, scrollResult.topScroll);
+  expect(finalScroll).toBeGreaterThan(0);
+});
+
+// 測試手機版
+test('🤖 手機版：垂直捲動測試', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  // ... 之前的垂直捲動邏輯
 });

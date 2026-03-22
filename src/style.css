@@ -1385,3 +1385,140 @@ body {
   opacity: 0.5;
   cursor: pointer;
 }
+/* ══════════════════════════════════════════════════════
+   寶的 10.4 終極修復版：可以滑動、沒有橫桿、箭頭正常
+   ══════════════════════════════════════════════════════ */
+
+/* 1. 讓整個視窗恢復可以「上下滾動」的權限 */
+.modal-content {
+    position: relative !important;
+    max-height: 85vh !important;   /* 高度限制在螢幕 85% */
+    overflow-y: auto !important;   /* 開放上下捲動 */
+    overflow-x: hidden !important; /* 鎖死左右移動 */
+    padding-bottom: 30px !important; /* 底部留白，讓按鈕好按 */
+}
+
+/* 2. 二級視窗 (循環週期) 的設定 */
+.cycle-layer-mask {
+    position: absolute !important;
+    top: 0 !important;
+    left: 100% !important; 
+    width: 100% !important;
+    height: 100% !important;
+    background: #ffffff !important; 
+    transition: transform 0.3s ease-out !important;
+    z-index: 9999 !important;
+    visibility: hidden;
+    overflow-y: auto !important; /* 這裡也要能上下捲動 */
+}
+
+/* 3. 當二級視窗滑出來時 */
+.cycle-layer-mask.active {
+    transform: translateX(-100%) !important;
+    visibility: visible !important;
+}
+
+/* 4. 隱藏所有醜醜的捲軸桿 (Chrome, Safari, Firefox) */
+.modal-content::-webkit-scrollbar, 
+.cycle-layer-mask::-webkit-scrollbar {
+    display: none !important;
+}
+.modal-content, .cycle-layer-mask {
+    scrollbar-width: none !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   寶的 10.6 救星補丁：修正位置 + 開放捲動
+   ══════════════════════════════════════════════════════ */
+
+/* 1. 確保主視窗能捲動，且高度正確 */
+.modal-content {
+    position: relative !important;
+    max-height: 80vh !important;    /* 限制高度，才會出現捲動 */
+    overflow-y: auto !important;    /* 強制開啟上下滑動 */
+    overflow-x: hidden !important;  /* 鎖死左右晃動 */
+    display: block !important;      /* 確保內容是垂直堆疊的 */
+    padding-bottom: 40px !important; 
+    border-radius: 20px !important;
+}
+
+/* 2. 修正：把「循環週期設定」抓回來到右邊躲好，不要排在下面 */
+#cycleLayer.cycle-layer-mask {
+    position: absolute !important;  /* 絕對定位，這樣它才不會排在儲存按鈕下面 */
+    top: 0 !important;
+    left: 100% !important;          /* 躲在右邊外面 */
+    width: 100% !important;
+    height: 100% !important;
+    background: #ffffff !important;
+    z-index: 9999 !important;       /* 確保在最上層 */
+    visibility: hidden;
+    transition: transform 0.3s ease-out !important;
+}
+
+/* 3. 滑入動作 */
+#cycleLayer.cycle-layer-mask.active {
+    visibility: visible !important;
+    transform: translateX(-100%) !important;
+}
+
+/* 4. 徹底隱藏捲軸條（讓畫面乾淨） */
+.modal-content::-webkit-scrollbar, 
+.cycle-layer-mask::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+}
+.modal-content, .cycle-layer-mask {
+    scrollbar-width: none !important;
+}
+
+/* 5. 修正格子間距與標籤靠左 */
+.form-field {
+    text-align: left !important;
+    margin-bottom: 18px !important;
+}
+.form-label {
+    display: block !important;
+    text-align: left !important;
+    margin-bottom: 5px !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   寶的專屬：星期圓圈選擇器樣式
+   ══════════════════════════════════════════════════════ */
+
+/* 容器：橫向排開 */
+.week-selector {
+    display: flex;
+    justify-content: space-between; /* 均勻分布 */
+    gap: 8px;
+    margin-top: 10px;
+}
+
+/* 單個圓圈 */
+.day-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%; /* 變成正圓 */
+    background: #f0f0f0; /* 未選中的底色 */
+    color: #888;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    user-select: none; /* 防止文字被選取 */
+}
+
+/* 選中狀態：變色 */
+.day-circle.active {
+    background: #849FB5 !important; /* 妳最愛的藍色 */
+    color: white !important;
+    box-shadow: 0 4px 10px rgba(132, 159, 181, 0.3);
+}
+
+/* 滑鼠經過的小效果 */
+.day-circle:hover:not(.active) {
+    background: #e8e8e8;
+}

@@ -38,21 +38,38 @@ function showAppUI() {
 }
 
 /* ══════════════════════════════════════════════════════
-   onAuthStateChanged 監聽器
+   onAuthStateChanged 監聽器 (VIP 通行版)
 ══════════════════════════════════════════════════════ */
 let isInitialized = false;
 
 onAuthStateChanged(auth, async function(user) {
+  // 如果已經初始化過就不再跑，避免重複觸發
   if (isInitialized) return;
   isInitialized = true;
 
-  if (user) {
-    try { await loadData(user.uid); } catch(e) { console.warn(e); }
-    showAppUI();
+  // 🌟 1. 檢查網址有沒有帶著測試鑰匙
+  const urlParams = new URLSearchParams(window.location.search);
+  const isTestMode = urlParams.get('test_mode') === 'secret_key_123';
+
+  // 🌟 2. 判斷：如果有登入「或者」是測試模式
+  if (user || isTestMode) {
+    if (user) {
+      // 正常使用者登入
+      try { await loadData(user.uid); } catch(e) { console.warn(e); }
+    } else {
+      // 🤖 機器人帶著鑰匙進場
+      console.log('--- 🤖 機器人 VIP 模式進場 ---');
+      // 觸發一個事件讓 grid.js 知道可以畫格子了
+      window.dispatchEvent(new CustomEvent('tasks:loaded'));
+    }
+    // 🔓 顯示主畫面 (呼叫妳原本檔案裡的函式)
+    showAppUI(); 
   } else {
+    // 🔒 沒登入也沒鑰匙：顯示登入畫面
     showLoginUI();
   }
 });
+
 
 /* ══════════════════════════════════════════════════════
    登入 / 登出

@@ -466,49 +466,137 @@ function closeModal() {
 
 function openAddTaskModal(dateStr, defaultTime) {
   _saveScroll();
-  openModal(
-    '<p class="modal-title">新增任務</p>' +
-    '<p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px">' + dateStr + '</p>' +
-    '<div class="form-field"><label class="form-label">任務名稱 *</label>' +
-      '<input class="form-input" id="fName" placeholder="任務名稱"></div>' +
-    '<div class="form-field"><label class="form-label">開始時間（HH:mm）</label>' +
-      '<input class="form-input" id="fStart" type="text" placeholder="09:00" value="' + (defaultTime||'') + '"></div>' +
-    '<div class="form-field"><label class="form-label">預計時長（分鐘）</label>' +
-      '<input class="form-input" id="fDuration" type="number" min="1" value="30"></div>' +
-    '<div class="form-field" style="display:none"><input class="form-input" id="fEnd" readonly></div>' +
-    '<div class="form-field"><label class="form-label">備註</label>' +
-      '<input class="form-input" id="fNote" placeholder="選填"></div>' +
-    '<div class="form-field"><label class="form-label">顏色</label>' +
-      '<div class="color-picker-row" id="colorPicker">' + _buildColorDots('') + '</div></div>' +
-    '<button class="btn btn-primary" style="width:100%;margin-top:8px" ' +
-            'onclick="window._submitAddTask(\'' + dateStr + '\')">儲存行程</button>' +
-    '<button class="btn btn-ghost" onclick="window.closeModal()">取消</button>'
-  );
-  _bindEndTimeCalc();
-  _bindColorDots();
-}
 
-function _submitAddTask(dateStr) {
-  var name  = document.getElementById('fName').value.trim();
-  var start = document.getElementById('fStart').value.trim();
-  var dur   = parseInt(document.getElementById('fDuration').value) || 30;
-  var note  = document.getElementById('fNote').value.trim();
-  var dot   = document.querySelector('#colorPicker .color-dot.selected');
-  var color = dot ? dot.dataset.color : '#849FB5';
-  if (!name)  { alert('請填寫任務名稱'); return; }
-  if (!/^\d{2}:\d{2}$/.test(start)) { alert('時間格式：HH:mm，例如 09:30'); return; }
-  saveTask(dateStr, { name: name, startTime: start, duration: dur, note: note, color: color });
-  closeModal();
-  renderTimeGrid(window._currentRenderDate);
-  _restoreScroll();
+  // 1. 渲染佈景 (調整了間距：form-field 底部加寬，顏色標籤底部縮短)
+  openModal(
+    '<div class="modal-header" style="text-align:center; font-weight:bold; color:#849FB5; padding:15px;">新增任務</div>' +
+    '<div class="modal-body" style="padding: 0 20px 20px 20px; position: relative; overflow: hidden;">' +
+      '<p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:15px; text-align:center;">' + dateStr + '</p>' +
+      
+      // 每個 form-field 底部加寬到 22px，讓字跟下面的格子有呼吸感
+      '<div class="form-field" style="margin-bottom:22px;"><label class="form-label">任務名稱 *</label>' +
+        '<input class="form-input" id="fName" placeholder="任務名稱"></div>' +
+
+      '<div class="form-field" style="margin-bottom:22px;"><label class="form-label">開始時間 (HH:mm)</label>' +
+        '<input class="form-input" id="fStart" type="text" placeholder="09:00" value="' + (defaultTime || '') + '"></div>' +
+      
+      '<div class="form-field" style="margin-bottom:22px;"><label class="form-label">預計時長 (分鐘)</label>' +
+        '<input class="form-input" id="fDuration" type="number" min="1" value="30"></div>' +
+
+      '<div class="form-field" style="margin-bottom:22px;"><label class="form-label">備註</label>' +
+        '<input class="form-input" id="fNote" placeholder="選填"></div>' +
+
+      // 🎨 顏色區域：標籤距離圓點縮小 (margin-bottom: 4px)
+      '<div class="form-field" style="margin-bottom:25px;">' +
+        '<label class="form-label" style="margin-bottom:4px; display:block;">顏色</label>' +
+        '<div class="color-picker-row" id="colorPicker" style="display:flex; justify-content:flex-start; gap:12px;">' + 
+          _buildColorDots('') + 
+        '</div>' +
+      '</div>' +
+
+      // 循環週期列
+      '<div class="cycle-trigger" id="openCycleLayerBtn" style="display:flex; justify-content:space-between; align-items:center; padding:14px; background:#f9f9f9; border-radius:12px; cursor:pointer; border:1px solid #eee;">' +
+        '<span style="font-size: 0.95rem; color:#888;">循環週期</span>' +
+       '<span id="add_cycleText" style="color:#849FB5; font-size: 0.9rem;">不重複 ❯</span>'+
+      '</div>' +
+      
+      '<button class="btn btn-primary" style="width:100%; margin-top:25px;" ' +
+              'onclick="window._submitAddTask(\'' + dateStr + '\')">儲存行程</button>' +
+      '<p style="text-align:center; margin-top:15px; color:#888; cursor:pointer;" onclick="window.closeModal()">取消</p>' +
+
+      // ═════ 二級視窗 (循環週期設定) ═════
+      '<div id="cycleLayer" class="cycle-layer-mask">' +
+        '<div class="layer-header" style="padding:15px; display:flex; align-items:center; border-bottom:1px solid #eee;">' +
+          '<button type="button" id="closeCycleLayerBtn" style="background:none; border:none; font-size:24px; color:#849FB5; cursor:pointer; font-weight:bold; padding:0 10px;"> < </button>' +
+          '<div style="flex:1; text-align:center; font-weight:bold; color:#849FB5; margin-right:34px;">循環週期設定</div>' +
+        '</div>' +
+        '<div style="padding:20px;">' +
+          '<div class="form-field"><label class="form-label">重複日期範圍</label>' +
+            '<input type="date" id="cycle_startDate" class="form-input" style="margin-bottom:8px">' +
+            '<input type="date" id="cycle_endDate" class="form-input"></div>' +
+          '<div class="form-field"><label class="form-label">循環頻率</label>' +
+            '<div style="display:flex; gap:10px; align-items:center;">' +
+              '<input type="number" id="cycle_freqNum" class="form-input" value="1" style="width:70px">' +
+              '<span>次 / </span>' +
+              '<select id="cycle_freqUnit" class="form-input">' +
+                '<option value="day">日</option><option value="week">週</option><option value="month">月</option>' +
+              '</select>' +
+            '</div>' +
+          '</div>' +
+          '<div id="weekSelectContainer" style="display:none; margin-top:20px;">' +
+            '<label class="form-label">重複星期</label>' +
+            '<div class="week-selector">' +
+              '<div class="day-circle" data-day="0">日</div><div class="day-circle active" data-day="1">一</div>' +
+              '<div class="day-circle" data-day="2">二</div><div class="day-circle" data-day="3">三</div>' +
+              '<div class="day-circle" data-day="4">四</div><div class="day-circle" data-day="5">五</div>' +
+              '<div class="day-circle" data-day="6">六</div>' +
+            '</div>' +
+          '</div>' +
+          '<button type="button" id="applyCycleBtn" class="btn btn-primary" style="width:100%; margin-top:30px;">完成設定</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>'
+  );
+
+  // 2. 綁定按鈕動作
+  setTimeout(() => {
+    const layer = document.getElementById('cycleLayer');
+    const openBtn = document.getElementById('openCycleLayerBtn');
+    const closeBtn = document.getElementById('closeCycleLayerBtn');
+    const applyBtn = document.getElementById('applyCycleBtn');
+    const freqUnit = document.getElementById('cycle_freqUnit');
+    const weekContainer = document.getElementById('weekSelectContainer');
+
+    if (openBtn) openBtn.onclick = () => layer.classList.add('active');
+    if (closeBtn) closeBtn.onclick = () => layer.classList.remove('active');
+    if (applyBtn) {
+  applyBtn.onclick = () => {
+    layer.classList.remove('active');
+    // 當按下完成時，檢查日期有沒有填，有填就讓文字變「已設定」
+    const s = document.getElementById('cycle_startDate').value;
+    const e = document.getElementById('cycle_endDate').value;
+    const txt = document.getElementById('add_cycleText');
+    if (s && e && txt) {
+      txt.innerText = '已設定 ❯';
+    }
+  };
 }
+    // --- [修正這裡：請看清楚括號] ---
+    if (freqUnit && weekContainer) {
+      // 初始化顯示
+      weekContainer.style.display = (freqUnit.value === 'week') ? 'block' : 'none';
+      
+      freqUnit.onchange = (e) => {
+        weekContainer.style.display = (e.target.value === 'week') ? 'block' : 'none';
+      }; // ⬅️ 這裡要關掉 onchange
+    } // ⬅️ 這裡要關掉 if (freqUnit && weekContainer)
+
+    // 星期圓圈點擊變色
+    document.querySelectorAll('.day-circle').forEach(el => {
+      el.onclick = function() { 
+        this.classList.toggle('active'); 
+      };
+    });
+
+    _bindEndTimeCalc();
+    _bindColorDots();
+  }, 50);
+} // ⬅️ 這是 openEditTaskModal 的最後一個門
+
+
 
 function openDetailModal(dateStr, taskId) {
   var tasks = getTasksForDate(dateStr);
   var task  = tasks.find(function(t) { return t.id === taskId; });
   if (!task) return;
+
+  /* 若為分身任務，編輯和刪除要指向原始任務的 dateStr */
+  var editDateStr   = task._isGhost ? task._originDateStr : dateStr;
+  var editTaskId    = task._isGhost ? (task._sourceId || taskId) : taskId;
+
   openModal(
     '<p class="modal-title">' + _esc(task.name) + '</p>' +
+    (task._isGhost ? '<p style="font-size:0.72rem;color:var(--color-main);margin-bottom:4px">🔄 循環任務</p>' : '') +
     '<p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px">' +
       task.startTime + ' ~ ' + task.endTime + '（' + task.duration + ' 分鐘）</p>' +
     '<div class="timer-display" id="timerDisplay">00:00:00</div>' +
@@ -517,9 +605,9 @@ function openDetailModal(dateStr, taskId) {
     '<button class="btn btn-green" style="width:100%" ' +
       'onclick="window._markDoneAndClose(\'' + dateStr + '\',\'' + taskId + '\')">標示已完成</button>' +
     '<button class="btn btn-edit" style="width:100%" ' +
-      'onclick="window.openEditTaskModal(\'' + dateStr + '\',\'' + taskId + '\')">編輯行程</button>' +
+      'onclick="window.openEditTaskModal(\'' + editDateStr + '\',\'' + editTaskId + '\')">編輯行程</button>' +
     '<div style="margin-top:4px"><button class="btn btn-danger" style="width:100%" ' +
-      'onclick="window._deleteAndClose(\'' + dateStr + '\',\'' + taskId + '\')">刪除行程</button></div>'
+      'onclick="window._deleteAndClose(\'' + editDateStr + '\',\'' + editTaskId + '\')">刪除行程</button></div>'
   );
   _timerSeconds = task.focusTime || 0;
   _updateTimerDisplay();
@@ -530,41 +618,103 @@ function openEditTaskModal(dateStr, taskId) {
   var tasks = getTasksForDate(dateStr);
   var task  = tasks.find(function(t) { return t.id === taskId; });
   if (!task) return;
+
   openModal(
-    '<p class="modal-title">編輯行程</p>' +
-    '<div class="form-field"><label class="form-label">任務名稱 *</label>' +
-      '<input class="form-input" id="fName" value="' + _esc(task.name) + '"></div>' +
-    '<div class="form-field"><label class="form-label">開始時間（HH:mm）</label>' +
-      '<input class="form-input" id="fStart" type="text" value="' + task.startTime + '"></div>' +
-    '<div class="form-field"><label class="form-label">預計時長（分鐘）</label>' +
-      '<input class="form-input" id="fDuration" type="number" value="' + task.duration + '"></div>' +
-    '<div class="form-field" style="display:none"><input class="form-input" id="fEnd" readonly value="' + task.endTime + '"></div>' +
-    '<div class="form-field"><label class="form-label">備註</label>' +
-      '<input class="form-input" id="fNote" value="' + _esc(task.note) + '"></div>' +
-    '<div class="form-field"><label class="form-label">顏色</label>' +
-      '<div class="color-picker-row" id="colorPicker">' + _buildColorDots(task.color) + '</div></div>' +
-    '<button class="btn btn-primary" style="width:100%;margin-top:8px" ' +
-            'onclick="window._submitEditTask(\'' + dateStr + '\',\'' + taskId + '\')">儲存變更</button>' +
-    '<button class="btn btn-ghost" onclick="window.closeModal()">取消</button>'
+    '<div class="modal-header" style="text-align:center; font-weight:bold; color:#849FB5; padding:15px;">編輯行程</div>' +
+    '<div class="modal-body" style="padding: 0 20px 20px 20px; position: relative; overflow: hidden;">' +
+      '<p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:15px; text-align:center;">' + dateStr + '</p>' +
+      '<div class="form-field" style="margin-bottom:22px;"><label class="form-label">任務名稱 *</label>' +
+        '<input class="form-input" id="fName" value="' + _esc(task.name) + '"></div>' +
+      '<div class="form-field" style="margin-bottom:22px;"><label class="form-label">開始時間 (HH:mm)</label>' +
+        '<input class="form-input" id="fStart" type="text" value="' + task.startTime + '"></div>' +
+      '<div class="form-field" style="margin-bottom:22px;"><label class="form-label">預計時長 (分鐘)</label>' +
+        '<input class="form-input" id="fDuration" type="number" value="' + task.duration + '"></div>' +
+      '<div class="form-field" style="margin-bottom:22px;"><label class="form-label">備註</label>' +
+        '<input class="form-input" id="fNote" value="' + _esc(task.note) + '"></div>' +
+      '<div class="form-field" style="margin-bottom:25px;">' +
+        '<label class="form-label" style="margin-bottom:4px; display:block;">顏色</label>' +
+        '<div class="color-picker-row" id="colorPicker" style="display:flex; justify-content:flex-start; gap:12px;">' + 
+          _buildColorDots(task.color) + 
+        '</div>' +
+      '</div>' +
+      '<div class="cycle-trigger" id="openCycleLayerBtn" style="display:flex; justify-content:space-between; align-items:center; padding:14px; background:#f9f9f9; border-radius:12px; cursor:pointer; border:1px solid #eee;">' +
+        '<span style="font-size: 0.95rem; color:#888;">循環週期</span>' +
+        '<span id="add_cycleText" style="color:#849FB5; font-size: 0.9rem;">' + (task.cycle ? '已設定 ❯' : '不重複 ❯') + '</span>' +
+      '</div>' +
+      '<button class="btn btn-primary" style="width:100%; margin-top:25px;" onclick="window._submitEditTask(\'' + dateStr + '\',\'' + taskId + '\')">儲存變更</button>' +
+      '<p style="text-align:center; margin-top:15px; color:#888; cursor:pointer;" onclick="window.closeModal()">取消</p>' +
+      '<div id="cycleLayer" class="cycle-layer-mask">' +
+        '<div class="layer-header" style="padding:15px; display:flex; align-items:center; border-bottom:1px solid #eee;">' +
+          '<button type="button" id="closeCycleLayerBtn" style="background:none; border:none; font-size:24px; color:#849FB5; cursor:pointer; font-weight:bold; padding:0 10px;"> < </button>' +
+          '<div style="flex:1; text-align:center; font-weight:bold; color:#849FB5; margin-right:34px;">循環週期設定</div>' +
+        '</div>' +
+        '<div style="padding:20px;">' +
+          '<div class="form-field"><label class="form-label">重複日期範圍</label>' +
+            '<input type="date" id="cycle_startDate" class="form-input" style="margin-bottom:8px" value="' + (task.cycle?.start || '') + '">' +
+            '<input type="date" id="cycle_endDate" class="form-input" value="' + (task.cycle?.end || '') + '"></div>' +
+          '<div class="form-field" style="margin-top:15px;">' +
+            '<label class="form-label">重複頻率</label>' +
+            '<select id="cycle_freqUnit" class="form-input">' +
+              '<option value="day" ' + (task.cycle?.unit === 'day' ? 'selected' : '') + '>每天</option>' +
+              '<option value="week" ' + (task.cycle?.unit === 'week' ? 'selected' : '') + '>每週</option>' +
+              '<option value="month" ' + (task.cycle?.unit === 'month' ? 'selected' : '') + '>每月</option>' +
+            '</select>' +
+          '</div>' +
+          '<div id="weekSelectContainer" style="margin-top:20px; display:' + (task.cycle && task.cycle.unit === 'week' ? 'block' : 'none') + ';">' +
+            '<label class="form-label" style="margin-bottom:10px;">重複星期</label>' +
+            '<div class="week-selector">' +
+              ['日','一','二','三','四','五','六'].map((day, i) => {
+  // 檢查這個任務有沒有存過 days，且有沒有包含目前的星期 i
+  var isSaved = (task.cycle && task.cycle.days && task.cycle.days.includes(i));
+  var isActive = isSaved ? ' active' : '';
+  return '<div class="day-circle' + isActive + '" data-day="' + i + '">' + day + '</div>';
+}).join('')+
+            '</div>' +
+          '</div>' +
+          '<button type="button" id="applyCycleBtn" class="btn btn-primary" style="width:100%; margin-top:30px;">完成設定</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>'
   );
-  _bindEndTimeCalc();
-  _bindColorDots();
+
+  /* 用 requestAnimationFrame 確保 DOM（含 select value）完全解析後再讀取 */
+  requestAnimationFrame(() => {
+    const layer = document.getElementById('cycleLayer');
+    const openBtn = document.getElementById('openCycleLayerBtn');
+    const closeBtn = document.getElementById('closeCycleLayerBtn');
+    const applyBtn = document.getElementById('applyCycleBtn');
+    const freqUnit = document.getElementById('cycle_freqUnit');
+    const weekContainer = document.getElementById('weekSelectContainer');
+
+    if (openBtn) openBtn.onclick = () => layer.classList.add('active');
+    if (closeBtn) closeBtn.onclick = () => layer.classList.remove('active');
+    if (applyBtn) {
+      applyBtn.onclick = () => {
+        layer.classList.remove('active');
+        const s = document.getElementById('cycle_startDate').value;
+        const e = document.getElementById('cycle_endDate').value;
+        const txt = document.getElementById('add_cycleText');
+        if (s && e && txt) txt.innerText = '已設定 ❯';
+      };
+    }
+
+    if (freqUnit && weekContainer) {
+      /* weekSelectContainer 的 display 已在 HTML 裡根據 task.cycle.unit 設好，
+         這裡只綁定後續切換事件 */
+      freqUnit.onchange = (e) => {
+        weekContainer.style.display = (e.target.value === 'week') ? 'block' : 'none';
+      };
+    }
+
+    document.querySelectorAll('.day-circle').forEach(el => {
+      el.onclick = function() { this.classList.toggle('active'); };
+    });
+    _bindEndTimeCalc();
+    _bindColorDots();
+  });
 }
 
-function _submitEditTask(dateStr, taskId) {
-  var name  = document.getElementById('fName').value.trim();
-  var start = document.getElementById('fStart').value.trim();
-  var dur   = parseInt(document.getElementById('fDuration').value) || 30;
-  var note  = document.getElementById('fNote').value.trim();
-  var dot   = document.querySelector('#colorPicker .color-dot.selected');
-  var color = dot ? dot.dataset.color : '#849FB5';
-  if (!name)  { alert('請填寫任務名稱'); return; }
-  if (!/^\d{2}:\d{2}$/.test(start)) { alert('時間格式：HH:mm'); return; }
-  saveTask(dateStr, { name: name, startTime: start, duration: dur, note: note, color: color }, taskId);
-  closeModal();
-  renderTimeGrid(window._currentRenderDate);
-  _restoreScroll();
-}
+
 
 function openTodoModal(dateStr) {
   var items = getTodosForDate(dateStr);
@@ -833,6 +983,80 @@ function _debounce(fn,ms) { var t; return function(){ clearTimeout(t); t=setTime
 
 if (typeof generateId === 'undefined') {
   function generateId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+}
+
+function _submitAddTask(dateStr) {
+  var name  = document.getElementById('fName').value.trim();
+  var start = document.getElementById('fStart').value.trim();
+  var dur   = parseInt(document.getElementById('fDuration').value) || 30;
+  var note  = document.getElementById('fNote').value.trim();
+  var dot   = document.querySelector('#colorPicker .color-dot.selected');
+  var color = dot ? dot.dataset.color : '#849FB5';
+
+  // --- 關鍵打包區：抓取循環資料 ---
+  var sDate = document.getElementById('cycle_startDate') ? document.getElementById('cycle_startDate').value : '';
+  var eDate = document.getElementById('cycle_endDate') ? document.getElementById('cycle_endDate').value : '';
+  var freq  = document.getElementById('cycle_freqUnit') ? document.getElementById('cycle_freqUnit').value : 'day';
+  var days  = [];
+  document.querySelectorAll('.day-circle.active').forEach(el => {
+    days.push(parseInt(el.getAttribute('data-day')));
+  });
+
+  // 如果有填日期，就組成 cycle 物件
+  var cycleData = (sDate && eDate) ? { start: sDate, end: eDate, unit: freq, days: days } : null;
+
+  if (!name) { alert('請填寫任務名稱'); return; }
+
+  // 🔴 這裡最重要：一定要把 cycle: cycleData 塞進去存
+  saveTask(dateStr, { 
+    id: generateId(),
+    name: name, 
+    startTime: start, 
+    duration: dur, 
+    note: note, 
+    color: color, 
+    done: false,
+    cycle: cycleData 
+  });
+
+  closeModal();
+  renderTimeGrid(window._currentRenderDate);
+  _restoreScroll();
+}
+function _submitEditTask(dateStr, taskId) {
+  var name  = document.getElementById('fName').value.trim();
+  var start = document.getElementById('fStart').value.trim();
+  var dur   = parseInt(document.getElementById('fDuration').value) || 30;
+  var note  = document.getElementById('fNote').value.trim();
+  var dot   = document.querySelector('#colorPicker .color-dot.selected');
+  var color = dot ? dot.dataset.color : '#849FB5';
+
+  // --- 關鍵打包區：同樣要抓循環資料 ---
+  var sDate = document.getElementById('cycle_startDate') ? document.getElementById('cycle_startDate').value : '';
+  var eDate = document.getElementById('cycle_endDate') ? document.getElementById('cycle_endDate').value : '';
+  var freq  = document.getElementById('cycle_freqUnit') ? document.getElementById('cycle_freqUnit').value : 'day';
+  var days  = [];
+  document.querySelectorAll('.day-circle.active').forEach(el => {
+    days.push(parseInt(el.getAttribute('data-day')));
+  });
+
+  var cycleData = (sDate && eDate) ? { start: sDate, end: eDate, unit: freq, days: days } : null;
+
+  if (!name) return;
+
+  // 🔴 編輯也要記得存入 cycle: cycleData
+  saveTask(dateStr, { 
+    name: name, 
+    startTime: start, 
+    duration: dur, 
+    note: note, 
+    color: color, 
+    cycle: cycleData 
+  }, taskId); // ✨ 關鍵：要把 taskId 傳在第三個參數！
+
+  closeModal();
+  renderTimeGrid(window._currentRenderDate);
+  _restoreScroll();
 }
 
 /* ══════════════════════════════════════════════════════

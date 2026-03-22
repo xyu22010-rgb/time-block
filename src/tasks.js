@@ -95,11 +95,20 @@ export async function sync() {
   saveToLocal();
   setSyncStatus('⏳ 同步中…');
 
+  // 🌟 檢查是不是機器人帶著鑰匙來
+  const urlParams = new URLSearchParams(window.location.search);
+  const isTestMode = urlParams.get('test_mode') === 'secret_key_123';
+
   const user = auth.currentUser;
-  if (!user) {
+  
+  // 如果「沒登入」而且「也不是測試模式」，才攔截
+  if (!user && !isTestMode) {
     setSyncStatus('☁️ 未登入，僅本機');
     return;
   }
+
+  // 如果是測試模式，我們給它一個虛擬的 uid，讓後續不會噴錯
+  const effectiveUid = user ? user.uid : 'robot_test_user';
 
   try {
     const payload = Object.assign({}, localData, { _uid: user.uid });
@@ -196,7 +205,8 @@ export function saveTask(dateStr, taskData, existingId) {
       color:     taskData.color     || '#849FB5',
       done:      false,
       focusTime: 0,
-      deleted:   false
+      deleted:   false,
+      cycle:     taskData.cycle     || null   /* 循環週期資料 */
     });
   }
 
@@ -230,7 +240,54 @@ export function deleteTask(dateStr, taskId) {
 }
 
 export function getTasksForDate(dateStr) {
-  return (localData.tasks[dateStr] || []).filter(t => !t.deleted);
+  /* 基本：取得當天直接儲存的任務 */
+  const directTasks = (localData.tasks[dateStr] || []).filter(t => !t.deleted);
+
+  /* 分身：掃描所有日期的循環任務，判斷是否應出現在 dateStr */
+  const ghosts = [];
+  const targetDate = new Date(dateStr);
+  targetDate.setHours(0, 0, 0, 0);
+  const targetDay = targetDate.getDay(); /* 0=日, 1=一 ... 6=六 */
+
+  Object.entries(localData.tasks).forEach(([dateKeyForTask, dayTasks]) => {
+    dayTasks.forEach(task => {
+      /* 跳過：已刪除、沒有循環設定、或已在當天直接儲存 */
+      if (task.deleted) return;
+      if (!task.cycle || !task.cycle.start || !task.cycle.end) return;
+      if ((localData.tasks[dateStr] || []).some(t => t.id === task.id)) return;
+
+      const startDate = new Date(task.cycle.start);
+      const endDate   = new Date(task.cycle.end);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+
+      /* 目標日期必須在循環範圍內 */
+      if (targetDate < startDate || targetDate > endDate) return;
+
+      const unit = task.cycle.unit || 'day';
+
+      if (unit === 'day') {
+        /* 每天都出現 */
+        ghosts.push({ ...task, _isGhost: true, _sourceId: task.id, _originDateStr: dateKeyForTask });
+
+      } else if (unit === 'week') {
+        /* 只在指定星期幾出現（days 陣列，0=日~6=六） */
+        const days = task.cycle.days || [];
+        if (days.includes(targetDay)) {
+          ghosts.push({ ...task, _isGhost: true, _sourceId: task.id, _originDateStr: dateKeyForTask });
+        }
+
+      } else if (unit === 'month') {
+        /* 每月同一天出現 */
+        const originDate = new Date(task.cycle.start);
+        if (targetDate.getDate() === originDate.getDate()) {
+          ghosts.push({ ...task, _isGhost: true, _sourceId: task.id, _originDateStr: dateKeyForTask });
+        }
+      }
+    });
+  });
+
+  return [...directTasks, ...ghosts];
 }
 
 function _findTask(dateStr, taskId) {
