@@ -17,12 +17,12 @@ export default defineConfig({
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
 
-  /* 🌈 這裡只留一個 use 區塊 */
+  /* 🌈 這裡「只留這一個」use 區塊，把舊的全部刪掉 */
   use: {
-    /* Base URL to use in actions like `await page.goto('')`. */
+    /* 強制指向 127.0.0.1，避免 localhost 找不到路 */
     baseURL: 'http://127.0.0.1:5173',
 
-    /* Collect trace when retrying the failed test. */
+    /* 只在第一次重試時紀錄追蹤 (Trace) */
     trace: 'on-first-retry',
   },
 
@@ -39,11 +39,13 @@ export default defineConfig({
     },
   ],
 
-  /* 🚀 讓 GitHub Actions 知道怎麼啟動妳的 Vite */
   webServer: {
-    command: 'npm run dev',           
-    url: 'http://127.0.0.1:5173',     
-    reuseExistingServer: !process.env.CI, 
-    timeout: 120000,                  
+    // 增加 --host 確保它強制監聽 127.0.0.1
+    command: 'npm run dev -- --host 127.0.0.1', 
+    url: 'http://127.0.0.1:5173',
+    reuseExistingServer: !process.env.CI,
+    // 雲端電腦慢，我們給它 5 分鐘時間啟動
+    timeout: 300000, 
   },
+
 });
