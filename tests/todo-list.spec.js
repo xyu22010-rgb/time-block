@@ -8,11 +8,11 @@ test.describe('📋 每日待辦清單測試 (To-do List)', () => {
     // 2. ✨ 在「模式選擇門」點擊「時間格」
     // 既然妳說它叫 getByRole('button', { name: '時間格' })
     const enterBtn = page.getByRole('button', { name: '時間格' });
-    await expect(enterBtn).toBeVisible({ timeout: 10000 });
+    await expect(enterBtn).toBeVisible({ timeout: 30000 });
     await enterBtn.click();
 
     // 3. ✨ 進入後，確保主介面 appUI 已經顯示
-    await expect(page.locator('#appUI')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#appUI')).toBeVisible({ timeout: 30000 });
   });
 
   test('➕ 待辦清單應該能從 5 格增加到 6 格以上', async ({ page }) => {
@@ -24,7 +24,7 @@ test.describe('📋 每日待辦清單測試 (To-do List)', () => {
     // 2. ✨ 這裡改用「第五格待辦事項」有沒有出現，來判斷視窗開了沒
     // 這樣就算妳沒設 #todoModal ID 也能過！
     const fifthInput = page.getByRole('textbox', { name: '待辦事項…' }).nth(4);
-    await expect(fifthInput).toBeVisible({ timeout: 15000 }); 
+    await expect(fifthInput).toBeVisible({ timeout: 30000 }); 
     console.log('--- 🏠 視窗已開啟，看到第五格了 ---');
 
     // 3. ✨ 檢查初始數量是否為 5

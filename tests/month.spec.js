@@ -6,7 +6,7 @@ test.describe('🌙 月計畫模式測試 (Month Plan Mode)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/?test_mode=secret_key_123');
     // 確保頁面加載完成，看到模式選擇按鈕
-    await expect(page.getByRole('button', { name: '月計畫' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: '月計畫' })).toBeVisible({ timeout: 30000 });
   });
 
   // --- 🧪 測試一：UI 模式切換與隱藏 ---

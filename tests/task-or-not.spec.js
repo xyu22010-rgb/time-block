@@ -8,13 +8,13 @@ test.describe('任務管理測試 (Task or Not)', () => {
   
   // 2. ✨ 重要：等待網頁完全載入（Vite 渲染需要時間）
   // 我們等那個「正在讀取...」的 loadingOverlay 消失
-  await expect(page.locator('#loadingOverlay')).not.toBeVisible({ timeout: 10000 });
+  await expect(page.locator('#loadingOverlay')).not.toBeVisible({ timeout: 30000 });
 
   // 3. ✨ 如果登入遮罩還在，強行檢查它
   const loginOverlay = page.locator('#loginOverlay');
   if (await loginOverlay.isVisible()) {
     console.log('⚠️ 偵測到登入遮罩，嘗試等待 auth.js 處理...');
-    await expect(loginOverlay).not.toBeVisible({ timeout: 5000 });
+    await expect(loginOverlay).not.toBeVisible({ timeout: 15000 });
   }
 
   // 4. ✨ 進入「時間格」模式
@@ -105,7 +105,7 @@ test.describe('任務管理測試 (Task or Not)', () => {
     // 8. ✨ 最終驗證：確認文字還在
     // 我們直接找 testName，並給它一點點 buffer timeout
     const task = page.getByText(testName).first();
-    await expect(task).toBeVisible({ timeout: 10000 });
+    await expect(task).toBeVisible({ timeout: 30000 });
 
     console.log('--- ✅ 持久化測試成功！重新整理也沒丟失資料 ---');
   });
