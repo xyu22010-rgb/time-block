@@ -5,6 +5,10 @@ import { defineConfig, devices } from '@playwright/test';
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
+  timeout: 60000, // 每個測試最多給 1 分鐘，超過就判死
+  expect: {
+    timeout: 10000, // 找元素超過 10 秒就報錯
+  },
   testDir: './tests',
   /* Run tests in files in parallel */
   fullyParallel: true,
@@ -15,7 +19,7 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  reporter: [['list'], ['html']],
 
   /* 🌈 這裡「只留這一個」use 區塊，把舊的全部刪掉 */
   use: {
@@ -33,10 +37,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+  
   ],
 
   webServer: {
